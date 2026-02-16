@@ -4,7 +4,7 @@ from kivy.config import Config
 import json
 from os.path import exists, join
 from os import remove, makedirs
-from models import Materia, Evaluacion
+from src.models import Materia, Evaluacion
 Config.set('kivy', 'log_level', 'info')
 
 RUTA_ARCHIVOS = None

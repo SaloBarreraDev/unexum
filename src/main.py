@@ -24,7 +24,7 @@ try:
 except ImportError:
     def run_on_ui_thread(func):
         return func
-from android_permissions import AndroidPermissions
+from src.android_permissions import AndroidPermissions
 from kivymd.app import MDApp
 import matplotlib.pyplot as plt
 import kivy_matplotlib_widget
@@ -53,27 +53,27 @@ from kivymd.uix.divider import MDDivider
 from kivymd.uix.button import MDButton, MDButtonText, MDIconButton, MDButtonIcon
 from kivymd.uix.widget import Widget
 from kivymd.uix.snackbar import MDSnackbar, MDSnackbarText, MDSnackbarSupportingText
-from data_manager import cargar_datos, migrar_datos
+from src.data_manager import cargar_datos, migrar_datos
 from kivymd.uix.label import MDLabel
 from kivymd.uix.relativelayout import MDRelativeLayout
 from kivy.animation import Animation
-from expansionpanel import FMDExpansionPanel
+from src.expansionpanel import FMDExpansionPanel
 from kivy.resources import resource_add_path
 
 #Importaciones de modulos
-from utils import (get_height_of_bar, set_status_bar_color, 
+from src.utils import (get_height_of_bar, set_status_bar_color, 
     set_status_bar_icons_dark, set_navigation_bar_black, VERSION,
     URL_BASE_DATOS_HORARIO, URL_VERSION_HORARIO, interpolar_nota)
-from utils.secrets import REWARDED, INTERSTITIAL
-from views.screens import (Acerca, DescargoResponsabilidad, Colaboradores,
+from src.utils.secrets import REWARDED, INTERSTITIAL
+from src.views.screens import (Acerca, DescargoResponsabilidad, Colaboradores,
     Licencias, GenerarHorario, Configuracion, Login, Horario, Evaluaciones,
     Estadisticas)
-from views.custom_widgets import (BoxLayoutElevated, CustomMDScrollView, BoxConRipple, BoxConRippleIndice,
+from src.views.custom_widgets import (BoxLayoutElevated, CustomMDScrollView, BoxConRipple, BoxConRippleIndice,
     LabelListaIndice, CampoTextoListaIndice, BoxConRipplePensum, LabelListaPensum,
     CheckBoxPensum, CampoTextoHorario, SelectableRecycleBoxLayout, SelectableLabel, RV,
     SelectableLabelHorario, RVHorario, BoxConRippleInicio, ExpansionPanelItem, TrailingPressedIconButton,
     Seccion)
-from models import Materia, Evaluacion
+from src.models import Materia, Evaluacion
 Config.set('kivy', 'log_level', 'info')
 Config.set("graphics", "maxfps", "120")
 Window.softinput_mode = "below_target"

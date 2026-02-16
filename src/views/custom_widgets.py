@@ -11,7 +11,7 @@ from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from kivy.uix.recycleboxlayout import RecycleBoxLayout
 from kivymd.uix.boxlayout import MDBoxLayout
-from expansionpanel import FMDExpansionPanel
+from src.expansionpanel import FMDExpansionPanel
 from kivy.uix.behaviors import ButtonBehavior
 from kivymd.uix.behaviors import RotateBehavior
 from kivymd.uix.list import MDListItemTrailingIcon
