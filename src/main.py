@@ -1,6 +1,6 @@
 import os
 os.environ["A4K_BACKEND"] = "pyjnius"
-from os.path import exists, join
+from os.path import exists, join, dirname, abspath
 import shutil
 import zipfile
 import datetime
@@ -58,6 +58,7 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.relativelayout import MDRelativeLayout
 from kivy.animation import Animation
 from expansionpanel import FMDExpansionPanel
+from kivy.resources import resource_add_path
 
 #Importaciones de modulos
 from utils import (get_height_of_bar, set_status_bar_color, 
@@ -97,6 +98,17 @@ os.makedirs(RUTA_DATOS, exist_ok = True)
 matplotlib_cache_dir = join(RUTA_DATOS, "matplotlib_cache")
 os.makedirs(matplotlib_cache_dir, exist_ok=True)
 os.environ["MPLCONFIGDIR"] = matplotlib_cache_dir
+
+#Obtener ruta de la carpepta Assets
+# 1. Obtiene la ruta donde está este archivo (src/main.py)
+DIR_ACTUAL = dirname(abspath(__file__))
+
+# 2. Sube un nivel para llegar a la raíz del proyecto (porque src está dentro de la raíz)
+DIR_RAIZ = dirname(DIR_ACTUAL)
+
+# 3. Define la ruta a la carpeta assets
+RUTA_ASSETS = join(DIR_RAIZ, 'assets')
+resource_add_path(RUTA_ASSETS)
 
 def run_in_thread(fn):
     def run(*k, **kw):
@@ -1193,6 +1205,7 @@ class Widget_Principal(ScreenManager):
     def mostrar_guia_inicio(self, *args):
         if self.guia_inicio:
             global VERSION
+            app = MDApp.get_running_app()
             dialogo_informacion = MDDialog(
                 MDDialogIcon(
                     icon="information",
@@ -1201,12 +1214,12 @@ class Widget_Principal(ScreenManager):
                 ),
                 MDDialogHeadlineText(text=f"[b]¡Bienvenido/a![/b]", markup=True),
                 MDDialogSupportingText(
-                    text=f"Gracias por descargar [color=#DA6304]UNEXUM[/color].\n\nAntes de continuar, lee la [b]Política de Privacidad[/b] y el [b]Descargo de Responsabilidad[/b] en Leer Más. Al utilizar esta aplicación aceptas estar de acuerdo con ambos.\n\n[b]Versión {VERSION}[/b]: Puedes consultar los cambios desde la playstore.",
+                    text=f"¡Ahora [color=#DA6304]UNEXUM[/color] es de código abierto! El código está [b][u][ref=github]disponible aquí.[/ref][/u][/b]\n\nAntes de continuar, lee la [b]Política de Privacidad[/b] y el [b]Descargo de Responsabilidad[/b] en Leer Más. Al utilizar esta aplicación aceptas estar de acuerdo con ambos.\n\n[b]Versión {VERSION}[/b]: Puedes consultar los cambios desde la playstore.",
                     theme_font_size="Custom",
                     font_size="14sp",
                     markup=True,
                     halign="left",
-                ),
+                    on_ref_press= (lambda instance, url = "https://github.com/SaloBarreraDev/unexum": app.abrir_enlace(url))),
                 size_hint_x=0.95,
                 size_hint_y=None,
                 radius=[dp(10), dp(10), dp(10), dp(10)],
@@ -5539,12 +5552,9 @@ class MainApp(MDApp):
         elif pantalla == "Licencias":
             self.widget_principal.add_widget(Licencias())
 
-    def abrir_politica(self, *args):
+    def abrir_enlace(self, enlace, *args):
         import webbrowser
-
-        webbrowser.open(
-            "https://docs.google.com/document/d/16mJz5LKKK6wMVRmdDqBrLc7rNaD5qulJDlUclffxa5k/edit?usp=sharing"
-        )
+        webbrowser.open(enlace)
 
     def dialogo_crear_copia(self, *args):
         dialogo_advertencia = MDDialog(
