@@ -4,6 +4,7 @@ if platform == "android":
     try:
         from jnius import PythonJavaClass, autoclass, cast, java_method
         from android.runnable import run_on_ui_thread  # type: ignore
+        from android import mActivity  # type: ignore
         Environment = autoclass("android.os.Environment")
     except ImportError:
         Logger.error(f"Error de importación de modulos android")
@@ -36,6 +37,7 @@ def get_height_of_bar(bar_target=None):
 
         return float(max(resources.getDimensionPixelSize(resourceId), 0))
     except Exception:
+        Logger.error(f"No se pudo determinar el tamaño de las barras {e}")
         # Getting the size is not supported on older Androids
         return 0.0
 
