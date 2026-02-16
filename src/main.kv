@@ -1,0 +1,2227 @@
+#:kivy 2.3.1
+#:import FMDExpansionPanel expansionpanel.FMDExpansionPanel
+#:import FMDExpansionPanelHeader expansionpanel.FMDExpansionPanelHeader
+#:import FMDExpansionPanelContent expansionpanel.FMDExpansionPanelContent
+<CustomMDScrollView>:
+    on_touch_down: self.stop_scroll(args[1])
+#Widgets recycle view para añadir materias inscritas
+<SelectableLabel>:
+    # Draw a background to indicate selection
+    halign: "center"
+    canvas.before:
+        Color:
+            rgba: app.root.CYAN if self.selected else (0, 0, 0, 0)
+        Rectangle:
+            pos: self.pos
+            size: self.size
+<RV>:
+    viewclass: 'SelectableLabel'
+    size_hint_y: None
+    height: dp(300)
+    SelectableRecycleBoxLayout:
+        default_size: None, dp(56)
+        default_size_hint: 1, None
+        size_hint_y: None
+        height: self.minimum_height
+        orientation: 'vertical'
+        multiselect: True
+        touch_multiselect: True
+
+#Widgets de horario:
+<ExpansionPanelItem>:
+    FMDExpansionPanelHeader:
+        MDRelativeLayout:
+            radius: dp(5)
+            size_hint: 1, None
+            height: dp(48)
+            theme_bg_color: "Custom"
+            md_bg_color: app.root.NARANJA_OSCURO
+            MDLabel:
+                theme_font_size: "Custom"
+                font_size: "16sp"
+                theme_line_height: "Custom"
+                line_height: 0.9
+                size_hint_x: 0.8
+                pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                text: root.nombre_materia
+                bold: True
+                halign: "center"
+
+            TrailingPressedIconButton:
+                id: chevron
+                pos_hint: {"center_x": 0.9, "center_y": 0.5}
+                theme_font_size: "Custom"
+                font_size: "28sp"
+                icon: "chevron-right"
+                on_release: app.root.tap_expansion_chevron(root, chevron)
+
+    FMDExpansionPanelContent:
+        id: content
+        adaptive_height: False
+        size_hint: 1, None
+        orientation: "vertical"
+        padding: "12dp", "20dp", "12dp", "12dp"
+        spacing: dp(4)
+        md_bg_color: app.root.color_fondo_mas_claro
+        MDLabel:
+            markup: True
+            text: "[u]Secciones Disponibles[/u]"
+            halign: "center"
+            valign: "center"
+            size_hint: 1, None
+            height: dp(14)
+
+
+<Seccion>:
+    elevation_level: 1
+    shadow_softness: 1
+    shadow_offset: 0,-3
+    size_hint: 1, None
+    height: dp(64)
+    md_bg_color: app.root.color_fondo_mas_claro
+    MDLabel:
+        theme_font_size: "Custom"
+        font_size: "12sp"
+        pos_hint: {"x": 0.2, "center_y": 0.5}
+        markup: True
+        text: f"[b]Sección {root.nro_seccion}[/b] - {root.dias}\nProf. {root.profesor}\n{root.aula}"
+
+    MDCheckbox:
+        color_inactive:"gray"
+        color_active: app.root.CYAN
+        on_active: app.root.alternar_secciones(self, root.materia, root.nro_seccion)
+        active: root.estado
+        pos_hint: {'center_x': 0.1, "center_y": 0.5}
+
+    MDIconButton:
+        icon: "calendar-edit"
+        pos_hint: {"center_x": 0.9, "center_y": 0.5}
+        on_release: app.root.editar_formato_materia(root.materia, root.nro_seccion)
+
+<SelectableLabelHorario>:
+    # Draw a background to indicate selection
+    halign: "center"
+    canvas.before:
+        Color:
+            rgba: app.root.CYAN if self.selected else (0, 0, 0, 0)
+        Rectangle:
+            pos: self.pos
+            size: self.size
+<RVHorario>:
+    viewclass: 'SelectableLabelHorario'
+    size_hint_y: None
+    height: dp(300)
+    SelectableRecycleBoxLayout:
+        default_size: None, dp(56)
+        default_size_hint: 1, None
+        size_hint_y: None
+        height: self.minimum_height
+        orientation: 'vertical'
+        multiselect: True
+        touch_multiselect: True
+
+<BoxLayoutHorario@MDBoxLayout>:
+    orientation: "horizontal"
+    size_hint: None,None
+<LabelHorario@MDLabel>:
+    markup: True
+    halign: "center"
+    font_style: "Body"
+    role: "medium"
+    theme_line_height:"Custom"
+    line_height:0.75
+<BoxLayoutTitulosHorario@MDBoxLayout>:
+    orientation: "vertical"
+    size_hint: None,None
+    radius: dp(8)
+
+#Widgets de indice
+<BoxConRippleIndice>:
+    size_hint: 1,None
+    height: dp(64)
+    md_bg_color: app.root.color_fondo_claro
+
+<LabelListaIndice>:
+    theme_line_height: "Custom"
+    line_height:1
+    pos_hint:{"x": 0.05}
+    markup:True
+    size_hint_x:0.7
+<CampoTextoListaIndice>:
+    input_type:"number"
+    write_tab:False
+    mode:"filled"
+    size_hint: 0.17,None
+    multiline:False
+    pos_hint:{"center_x": 0.85, "center_y": 0.5}
+    use_bubble: False
+    on_text_validate: app.root.siguiente_campo_notas(self)
+
+#Widgets de pensum
+<BoxConRipplePensum>:
+    size_hint: 1,None
+    height: dp(80)
+    
+<LabelListaPensum>:
+    theme_line_height: "Custom"
+    line_height: 1
+    pos_hint: {"x": 0.05}
+    markup:True
+    size_hint_x:0.8
+    outline_color:[0,0,0,1]
+    outline_width: app.root.borde_letra_fino
+<CheckBoxPensum>:
+    color_inactive:"gray"
+    color_active:app.root.AZUL_OSCURO
+    pos_hint:{"center_x": 0.9, "center_y": 0.5}
+
+#Pantallas:
+<Acerca>:
+    name:"Acerca"
+    MDBoxLayout:
+        id: fondo_acerca_de
+        orientation: 'vertical'
+        md_bg_color: app.root.color_fondo_mas_claro
+        padding: [0, app.size_status, 0, app.size_nav]
+
+        MDTopAppBar:
+            type: "small"
+            size_hint_y: .06
+            MDTopAppBarLeadingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon:"arrow-left"
+                    on_release: app.root.current="Inicio"
+            MDTopAppBarTitle:
+                markup: True
+                font_style: "Title"
+                role: "large"
+                text: "[b]Acerca de[/b]"
+                pos_hint: {"center_x": 0.5}
+
+        MDScrollView:
+            bar_width: 0
+            do_scroll_x: False
+            scroll_type: ["content"]
+            MDRelativeLayout:
+                size_hint: None,None
+                size: fondo_acerca_de.width,fondo_acerca_de.height
+                MDLabel:
+                    size_hint: None,None
+                    text_size: fondo_acerca_de.width,None
+                    size: self.texture_size
+                    theme_font_size: "Custom"
+                    font_size: "22sp"
+                    markup: True
+                    halign: "left"
+                    text: f"[color=#DA6304][b]UNEXUM[/b][/color] - {app.version}"
+                    pos_hint: {"x":0.1,"center_y":0.85}
+                Image: 
+                    source: "Icono App sin fondo.png"
+                    pos_hint: {"center_x": 0.85,"center_y":0.85}
+                    size_hint: 0.27,0.27
+                MDLabel:
+                    size_hint: None,None
+                    text_size: fondo_acerca_de.width,None
+                    size: self.texture_size
+                    theme_font_size: "Custom"
+                    font_size: "14sp"
+                    halign: "left"
+                    markup: True
+                    text: "Por [i]Salomón Barrera[/i]"
+                    pos_hint: {"x":0.1,"center_y":0.81}
+                MDLabel:
+                    size_hint: None,None
+                    text_size: fondo_acerca_de.width*0.8,None
+                    size: self.texture_size
+                    theme_font_size: "Custom"
+                    font_size: "14sp"
+                    halign: "left"
+                    theme_line_height: "Custom"
+                    line_height: 1.5
+                    markup: True
+                    text: "El único objetivo de Unexum es ofrecer a los estudiantes una forma fácil de consultar la información sobre su carrera.\n\n La aplicación es desarrollada de manera individual, junto con colaboradores. Los datos académicos son guardados de manera local, para más información sobre el manejo de datos revisa la [b][u][ref=politica]política de privacidad[/ref][/u][/b]."
+                    pos_hint: {"center_x":0.5,"center_y":0.55}
+                    on_ref_press: app.abrir_politica()
+
+                MDList:
+                    pos_hint: {"center_x":0.5,"y":0.05}
+                    MDListItem:
+                        on_press: if not app.root.has_screen("Descargo De Responsabilidad"): app.añadir_pantalla("Descargo De Responsabilidad")
+                        on_release: app.root.current="Descargo De Responsabilidad"
+                        theme_bg_color: "Custom"
+                        md_bg_color: [1,1,1,0]
+                        riple_effect: False
+
+                        MDListItemHeadlineText:
+                            text: "Descargo de responsabilidad"
+                        MDListItemTrailingIcon:
+                            theme_icon_color: "Custom"
+                            icon_color: app.root.CYAN
+                            icon: "chevron-right"
+                    MDListItem:
+                        on_press: if not app.root.has_screen("Colaboradores"): app.añadir_pantalla("Colaboradores")
+                        on_release: app.root.current="Colaboradores"
+                        theme_bg_color: "Custom"
+                        md_bg_color: [1,1,1,0]
+                        riple_effect: False
+
+                        MDListItemHeadlineText:
+                            text: "Colaboradores y Betatesters"
+                        MDListItemTrailingIcon:
+                            theme_icon_color: "Custom"
+                            icon_color: app.root.CYAN
+                            icon: "chevron-right"
+                    MDListItem:
+                        on_press: if not app.root.has_screen("Licencias"): app.añadir_pantalla("Licencias")
+                        on_release: app.root.current="Licencias"
+                        theme_bg_color: "Custom"
+                        md_bg_color: [1,1,1,0]
+                        riple_effect: False
+
+                        MDListItemHeadlineText:
+                            text: "Licencias de código abierto"
+                        MDListItemTrailingIcon:
+                            theme_icon_color: "Custom"
+                            icon_color: app.root.CYAN
+                            icon: "chevron-right"
+
+<DescargoResponsabilidad>:
+    name:"Descargo De Responsabilidad"
+    MDBoxLayout:
+        id: fondo_descargo
+        orientation: 'vertical'
+        md_bg_color: app.root.color_fondo_mas_claro
+        padding: [0, app.size_status, 0, app.size_nav]
+
+        MDTopAppBar:
+            type: "small"
+            size_hint_y: .06
+            MDTopAppBarLeadingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon:"arrow-left"
+                    on_release: app.root.current="Acerca"
+            MDTopAppBarTitle:
+                markup: True
+                font_style: "Title"
+                role: "large"
+                text: "[b]Acerca de[/b]"
+                pos_hint: {"center_x": 0.5}
+
+        MDScrollView:
+            bar_width: 0
+            do_scroll_x: False
+            scroll_type: ["content"]
+            MDBoxLayout:
+                size_hint: None,None
+                width: fondo_descargo.width
+                adaptive_height: True
+                orientation: "vertical"
+                padding: [fondo_descargo.width*0.1,fondo_descargo.width*0.2,fondo_descargo.width*0.1,fondo_descargo.width*0.1]
+                spacing: dp(10)
+
+                MDLabel:
+                    size_hint: None,None
+                    text_size: fondo_descargo.width,None
+                    size: self.texture_size
+                    theme_font_size: "Custom"
+                    font_size: "16sp"
+                    halign: "left"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: app.root.NARANJA_CLARO
+                    text: "Descargo de responsabilidad"
+                    #pos_hint: {"x":0.1,"center_y":0.95}
+                MDLabel:
+                    size_hint: None,None
+                    text_size: fondo_descargo.width*0.8,None
+                    size: self.texture_size
+                    theme_font_size: "Custom"
+                    font_size: "14sp"
+                    halign: "left"
+                    theme_line_height: "Custom"
+                    markup: True
+                    line_height: 1.5
+                    text: "[b]1. No oficialidad[/b]\nEsta aplicación es un proyecto independiente y no está afiliada, respaldada ni certificada por la UNEXPO. Los datos mostrados se basan en información de acceso público (reglamentos, pensums, etc.), pero no sustituyen consultas oficiales.\n\n[b]2. Exactitud de los datos[/b]\nAunque se esfuerza por ofrecer información precisa, la aplicación no garantiza la ausencia de errores en cálculos, materias u otros datos académicos. El usuario acepta que:\n\nLos resultados son meramente informativos.\n\nDebe verificar siempre con las autoridades universitarias (secretaría, coordinadores, reglamentos vigentes) antes de tomar decisiones académicas.\n\n[b]3. Responsabilidad del usuario[/b]\nEl usuario asume toda responsabilidad por acciones derivadas del uso de la app. No nos hacemos responsables de:\n\nConsecuencias académicas, administrativas o legales por basarse en datos de la app.\n\nErrores en cálculos de índices, materias aprobadas, requisitos de carrera u otra información.\n\nActualizaciones o cambios no reflejados en reglamentos universitarios posteriores.\n\n[b]4. Propiedad intelectual[/b]\nLos planes de estudio, reglamentos y demás contenidos referenciados son propiedad de la UNEXPO. Esta app solo los recopila con fines informativos.\n\n[b]5. Contacto[/b]\nA fin de crear confianza sobre los datos proporcionados, se anima a los usuarios a realizar reportes de errores o sugerencias al siguiente correo: salobarreradev@gmail.com"
+                    #pos_hint: {"center_x":0.5,"center_y":0.5}
+
+<Colaboradores>:
+    name:"Colaboradores"
+    MDBoxLayout:
+        id: fondo_colaboradores
+        orientation: 'vertical'
+        md_bg_color: app.root.color_fondo_mas_claro
+        padding: [0, app.size_status, 0, app.size_nav]
+
+        MDTopAppBar:
+            type: "small"
+            size_hint_y: .06
+            MDTopAppBarLeadingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon:"arrow-left"
+                    on_release: app.root.current="Acerca"
+            MDTopAppBarTitle:
+                markup: True
+                font_style: "Title"
+                role: "large"
+                text: "[b]Acerca de[/b]"
+                pos_hint: {"center_x": 0.5}
+
+        MDScrollView:
+            size_hint: 1, 1
+            bar_width: 0
+            do_scroll_x: False
+            scroll_type: ["content"]
+            MDRelativeLayout:
+                size_hint: None, None
+                size: fondo_colaboradores.width, fondo_colaboradores.height
+
+                MDLabel:
+                    size_hint: None,None
+                    text_size: fondo_colaboradores.width*0.92,None
+                    size: self.texture_size
+                    theme_font_size: "Custom"
+                    font_size: "14sp"
+                    halign: "left"
+                    theme_line_height: "Custom"
+                    markup: True
+                    line_height: 1.25
+                    text: "\n\n\n\n[b][color=#DA6304][size=16sp]Colaboradores y Betatesters:[/size][/color][/b]\n\n[b]Daniel Azuaje[/b] - Ing. Electrónica | Computación\n\n[b]Daniel Leal[/b] - Ing. Electrónica | Control\n\n[b]Yaikelys Mejías[/b] - Ing. Electrónica | Comunicaciones\n\n[b]Kimberly Toro[/b] - Ing. Industrial\n\n[b]Leonardo Teixeira[/b] - Ing. Industrial\n\n[b][ref=Mari]Mariangel[/ref] Rodríguez[/b] - Ing. Electrónica | Comunicaciones\n\n[b]Wajid Barrios[/b] - Inversionista[b]\n\n[color=#DA6304][size=16sp]Betatesters:[/size][/color][/b]\n\n[b]Augusto Mendoza[/b] - Ing. Mecánica\n\n[b]José Virgüez[/b] - Ing. Industrial\n\n[b]Juan Melendez[/b] - Ing. Electrónica | Control\n\n[b]Jesús Perdomo[/b] - Ing. Electrónica | Control"
+                    on_ref_press: app.root.color_moradito()
+                    pos_hint: {"x":0.04,"center_y":0.65}
+
+<Licencias>:
+    name:"Licencias"
+    MDBoxLayout:
+        id: fondo_licencias
+        orientation: 'vertical'
+        md_bg_color: app.root.color_fondo_mas_claro
+        padding: [0, app.size_status, 0, app.size_nav]
+
+        MDTopAppBar:
+            type: "small"
+            size_hint_y: .06
+            MDTopAppBarLeadingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon:"arrow-left"
+                    on_release: app.root.current="Acerca"
+            MDTopAppBarTitle:
+                markup: True
+                font_style: "Title"
+                role: "large"
+                text: "[b]Acerca de[/b]"
+                pos_hint: {"center_x": 0.5}
+
+        MDScrollView:
+            bar_width: 0
+            do_scroll_x: False
+            scroll_type: ["content"]
+            MDBoxLayout:
+                size_hint: None,None
+                width: fondo_licencias.width
+                adaptive_height: True
+                orientation: "vertical"
+                padding: [fondo_licencias.width*0.1,fondo_licencias.width*0.2,fondo_licencias.width*0.1,fondo_licencias.width*0.1]
+                spacing: dp(10)
+
+                MDLabel:
+                    size_hint: None,None
+                    text_size: fondo_licencias.width,None
+                    size: self.texture_size
+                    theme_font_size: "Custom"
+                    font_size: "16sp"
+                    halign: "left"
+                    bold: True
+                    theme_text_color: "Custom"
+                    text_color: app.root.NARANJA_CLARO
+                    text: "Licencias de código abierto"
+                MDLabel:
+                    size_hint: None,None
+                    text_size: fondo_licencias.width*0.8,None
+                    size: self.texture_size
+                    theme_font_size: "Custom"
+                    font_size: "14sp"
+                    halign: "left"
+                    theme_line_height: "Custom"
+                    markup: True
+                    line_height: 1.5
+                    text: '[b]KIVY\n\nMIT License[/b]\n\nCopyright (c) 2010-2025 Kivy Team and other contributors\n\nPermission is hereby granted, free of charge, to any person obtaining a copyof this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.\n\nAuthors & Contributors of the Kivy Framework\n============================================\n\nCore Developers\n---------------\n\n * Mathieu Virbel <mathieu __at__ kivy.org>\n * Gabriel Pettier / tshirtman <gabriel __at__ kivy.org>\n * Akshay Arora <akshay __at__ kivy.org>\n * Thomas-Karl Pietrowski <thopiekar __at__ gmail.com>\n * Ben Rousch <brousch __at__ gmail.com>\n * Jacob Kovac <kovac1066 __at__ gmail.com>\n * Alexander Taylor <alexanderjohntaylor __at__ gmail.com>\n * Matthew Einhorn <moiein2000 __at__ gmail.com>\n * Richard Larkin / ZenCODE <zenkey.zencode __at__ gmail.com>\n * Ryan Pessa <dkived __at__ gmail.com>\n * Sebastian Armin <dessant __at__ kivy.org>\n * Peter Badida <keyweeusr __at__ gmail.com>\nContributors\n-----------\n\n * Ilya Cassina <ilya.cassina __at__ gmail.com>\n * Jay Bradley <j.bradley __at__ napier.ac.uk>\n * Nathanaël Lécaudé <lecaude __at__ gmail.com>\n * Sharath Patali <sharath.patali __at__ gmail.com>\n * Tommaso Piazza <tommaso.piazza __at__ gmail.com>\n * Trevor Lockley <thatsyouremail __at__ gmail.com>\n * bernt\n * Terje Skjaeveland (bionoid)\n * George Sebastian (georgs)\n * Gabriel Ortega\n * Arnaud Waels (triselectif)\n * Thomas Hirsch\n * Joakim Gebart\n * Rosemary Sebastian\n * Jonathan Schemoul\n * Sam Brotherton (sbrother)\n\n\nGraphics\n--------\n\n * Vincent Autin <autinvincent __at__ gmail.com>\n\nSpecial Thanks\n--------------\n * Alex Teiche <xelapond __at__ gmail.com>\n * Felipe Moura <felipe.celer __at__ gmail.com>\n * Riley Dutton <rileydutton __at__ gmail.com>\n* Uday Karan <uday.karan __at__ gmail.com>\n * Damien Marchal <damien.marchal __at__ lifl.fr>\n * Tommy Bjorling <tommy.bjorling __at__ gmail.com>\n\nPast Core Developers\n--------------------\n\n * Thomas Hansen <thomas __at__ kivy.org>\n * Christopher Denter <christopher __at__ kivy.org>\n * Edwin Marshall <edwin __at__ kivy.org>\n * Jeff Pittman <geogeff __at__ geogeff.org>\n * Brian Knapp <knapp __at__ kivy.org>\n\n[/b]KIVYMD\n\nMIT License[/b]\n\nCopyright (c) 2024 Andrés Rodríguez and other contributors - KivyMD library up to version 0.1.2\nCopyright (c) 2024 KivyMD Team and other contributors - KivyMD library version 0.1.3 and higher\n\nPermission is hereby granted, free of charge, to any person obtaining a copyof this software and associated documentation files (the "Software"), to dealin the Software without restriction, including without limitation the rightsto use, copy, modify, merge, publish, distribute, sublicense, and/or sellcopies of the Software, and to permit persons to whom the Software isfurnished to do so, subject to the following conditions:\n\nThe above copyright notice and this permission notice shall be included in all\ncopies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS ORIMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THEAUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHELIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THESOFTWARE.\n\n[b]A4K_Pyjnius and Admob4kivy\n\nMIT License[/b]\n\n@Sahil-pixel on github\n\n[b]AndroidStorage4Kivy:[/b]\n\nMIT License\nCopyright (c) 2021 Android-for-PythonPermission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to dealin the Software without restriction, including without limitation the rightsto use, copy, modify, merge, publish, distribute, sublicense, and/or sellcopies of the Software, and to permit persons to whom the Software isfurnished to do so, subject to the following conditions: The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.\n\nTHE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.'
+
+<GenerarHorario>:
+    name:"GenerarHorario"
+    BoxLayout:
+        size_hint: None,None
+        width: root.height
+        height: root.width
+        pos_hint: {"center_x": 0.5, "center_y":0.5}
+        padding: [app.size_nav, 0, app.size_status, 0]
+
+        canvas.before: 
+            PushMatrix
+            Rotate:
+                angle: 90
+                origin: self.center
+        canvas.after:
+            PopMatrix
+            
+        MDGridLayout:
+            id: GridLayoutHorario
+            cols: 7
+            rows: 11
+            md_bg_color: "black"
+            orientation: "tb-lr"
+            spacing: 1
+
+            BoxLayoutHorario:
+                id: numerohorario
+                padding: 2
+                width: GridLayoutHorario.width/7
+                height: GridLayoutHorario.height/11
+                md_bg_color: app.root.color_fondo_claro
+                LabelHorario:
+                    id: label_numero_horario
+                    text: f"[b]# {root.numero_horario+1} de {root.max_horarios}[/b]"
+
+            BoxLayoutHorario:
+                width: GridLayoutHorario.width/7
+                height: GridLayoutHorario.height/11
+                md_bg_color: app.root.color_fondo_claro
+                LabelHorario:
+                    text: "[b]7[/b]\n7:05 a 7:55"
+                    
+            BoxLayoutHorario:
+                width: GridLayoutHorario.width/7
+                height: GridLayoutHorario.height/11
+                md_bg_color: app.root.color_fondo_claro
+                LabelHorario:
+                    text: "[b]8[/b]\n8:00 a 8:50"
+                    
+            BoxLayoutHorario:
+                width: GridLayoutHorario.width/7
+                height: GridLayoutHorario.height/11
+                md_bg_color: app.root.color_fondo_claro
+                LabelHorario:
+                    text: "[b]9[/b]\n8:55 a 9:45"
+
+            BoxLayoutHorario:
+                width: GridLayoutHorario.width/7
+                height: GridLayoutHorario.height/11
+                md_bg_color: app.root.color_fondo_claro
+                LabelHorario:
+                    text: "[b]10[/b]\n9:50 a 10:40"
+                
+            BoxLayoutHorario:
+                width: GridLayoutHorario.width/7
+                height: GridLayoutHorario.height/11
+                md_bg_color: app.root.color_fondo_claro
+                LabelHorario:
+                    text: "[b]11[/b]\n10:45 a 11:35"
+            
+            BoxLayoutHorario:
+                width: GridLayoutHorario.width/7
+                height: GridLayoutHorario.height/11
+                md_bg_color: app.root.color_fondo_claro
+                LabelHorario:
+                    text: "[b]12[/b]\n11:40 a 12:30"
+                    
+            BoxLayoutHorario:
+                width: GridLayoutHorario.width/7
+                height: GridLayoutHorario.height/11
+                md_bg_color: app.root.color_fondo_claro
+                LabelHorario:
+                    text: "[b]13[/b]\n1:00 a 1:50"
+                
+            BoxLayoutHorario:
+                width: GridLayoutHorario.width/7
+                height: GridLayoutHorario.height/11
+                md_bg_color: app.root.color_fondo_claro
+                LabelHorario:
+                    text: "[b]14[/b]\n1:55 a 2:45"
+
+            BoxLayoutHorario:
+                width: GridLayoutHorario.width/7
+                height: GridLayoutHorario.height/11
+                md_bg_color: app.root.color_fondo_claro
+                LabelHorario:
+                    text: "[b]15[/b]\n2:50 a 3:40"
+                    
+            BoxLayoutHorario:
+                width: GridLayoutHorario.width/7
+                height: GridLayoutHorario.height/11
+                md_bg_color: app.root.color_fondo_claro
+                LabelHorario:
+                    text: "[b]16[/b]\n3:45 a 4:35"
+
+        MDRelativeLayout:
+            size_hint: None, None
+            width: dp(35)
+            height: root.width
+            md_bg_color: app.root.color_fondo_claro
+                    
+
+    FloatLayout:
+        id: FloatLayoutHorario
+        MDIconButton:
+            icon:"arrow-up-drop-circle"
+            style: "filled"
+            theme_icon_color: "Custom"
+            icon_color: app.root.AZUL_CLARO
+            on_release: app.root.siguiente_horario(1)
+            size: dp(25), dp(25)
+            pos: dp(5), root.height - self.height - dp(9) - app.size_status
+            theme_bg_color: "Custom"
+            md_bg_color: [1,1,1,0]
+
+        MDIconButton:
+            icon:"arrow-down-drop-circle"
+            style: "filled"
+            theme_icon_color: "Custom"
+            icon_color: app.root.AZUL_CLARO
+            size: dp(25), dp(25)
+            on_release: app.root.anterior_horario(1)
+            pos: dp(30), root.height - self.height - dp(9) - app.size_status
+            theme_bg_color: "Custom"
+            md_bg_color: [1,1,1,0]
+
+        MDIconButton:
+            icon:"fast-forward"
+            style: "filled"
+            theme_icon_color: "Custom"
+            icon_color: "white"
+            theme_font_size: "Custom"
+            font_size: "12sp"
+            size: dp(25), dp(25)
+            on_release: app.root.siguiente_horario(5)
+            pos: dp(60), root.height - self.height - dp(9) - app.size_status
+            theme_bg_color: "Custom"
+            md_bg_color: app.root.AZUL_CLARO
+            canvas.before: 
+                PushMatrix
+                Rotate:
+                    angle: 90
+                    origin: self.center
+            canvas.after:
+                PopMatrix
+        
+        MDIconButton:
+            icon:"fast-forward"
+            style: "filled"
+            theme_icon_color: "Custom"
+            icon_color: "white"
+            theme_font_size: "Custom"
+            font_size: "12sp"
+            size: dp(25), dp(25)
+            on_release: app.root.anterior_horario(5)
+            pos: dp(90), root.height - self.height - dp(9) - app.size_status
+            theme_bg_color: "Custom"
+            md_bg_color: app.root.AZUL_CLARO
+            canvas.before: 
+                PushMatrix
+                Rotate:
+                    angle: 270
+                    origin: self.center
+            canvas.after:
+                PopMatrix
+
+        MDIconButton:
+            icon:"file-image"
+            style: "filled"
+            theme_icon_color: "Custom"
+            icon_color: "white"
+            theme_font_size: "Custom"
+            font_size: "12sp"
+            size: dp(25), dp(25)
+            on_release: app.root.guardar_imagen_horario()
+            pos: dp(120), root.height - self.height - dp(9) - app.size_status
+            theme_bg_color: "Custom"
+            md_bg_color: app.root.AZUL_CLARO
+            canvas.before: 
+                PushMatrix
+                Rotate:
+                    angle: 90
+                    origin: self.center
+            canvas.after:
+                PopMatrix
+
+        MDIconButton:
+            icon:"file-pdf-box"
+            style: "filled"
+            theme_icon_color: "Custom"
+            icon_color: "white"
+            theme_font_size: "Custom"
+            font_size: "12sp"
+            size: dp(25), dp(25)
+            on_release: app.root.guardar_pdf_horario()
+            pos: dp(150), root.height - self.height - dp(9) - app.size_status
+            theme_bg_color: "Custom"
+            md_bg_color: app.root.AZUL_CLARO
+            canvas.before: 
+                PushMatrix
+                Rotate:
+                    angle: 90
+                    origin: self.center
+            canvas.after:
+                PopMatrix
+
+        MDIconButton:
+            icon:"contrast-circle"
+            style: "filled"
+            theme_icon_color: "Custom"
+            icon_color: "white"
+            theme_font_size: "Custom"
+            font_size: "12sp"
+            size: dp(25), dp(25)
+            on_release: app.cambiar_tema(), app.root.actualizar_colores(), app.root.mostrar_materias_inicio(cambio_tema = True)
+            pos: dp(180), root.height - self.height - dp(9) - app.size_status
+            theme_bg_color: "Custom"
+            md_bg_color: app.root.AZUL_CLARO
+            canvas.before: 
+                PushMatrix
+                Rotate:
+                    angle: 90
+                    origin: self.center
+            canvas.after:
+                PopMatrix
+        
+        MDIconButton:
+            icon: "close"
+            style: "filled"
+            theme_icon_color: "Custom"
+            icon_color: "white"
+            theme_font_size: "Custom"
+            font_size: "12sp"
+            size: dp(25), dp(25)
+            on_release: app.root.current = "Horario"
+            pos: root.width - self.width - dp(9), root.height - self.height - dp(9) - app.size_status
+            theme_bg_color: "Custom"
+            md_bg_color: app.root.AZUL_CLARO
+
+<Configuracion>:
+    name:"Configuracion"
+    MDBoxLayout:
+        id: FondoConfiguracion
+        orientation: 'vertical'
+        md_bg_color: app.root.color_fondo_claro
+        padding: [0, app.size_status, 0, app.size_nav]
+        spacing: dp(1)
+
+        MDTopAppBar:
+            type: "small"
+            size_hint_y: .06
+
+            MDTopAppBarLeadingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon:"arrow-left"
+                    on_release: app.root.on_switch_tabs(None, None, None, "Inicio")
+            MDTopAppBarTitle:
+                markup: True
+                font_style: "Title"
+                role: "large"
+                text: "[b]Configuración[/b]"
+
+        MDGridLayout:
+            cols: 1
+            md_bg_color: app.root.color_fondo_claro
+            size_hint: 1,1
+            MDListItem:
+                on_release: app.root.abrir_menu_electivas()
+                divider: True
+                MDListItemLeadingIcon:
+                    icon:"notebook-edit"
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.NARANJA_CLARO
+                MDListItemHeadlineText:
+                    text: "Seleccionar Electivas"
+                MDListItemSupportingText:
+                    markup: True
+                    font_style: "Body"
+                    role: "small"
+                    text: "Seleccionar las electivas para Índice y Pensum"
+            MDListItem:
+                id: item_velocidad_carga
+                on_press: if app.root.menu_velocidad_carga.caller==None: app.root.menu_velocidad_carga.caller=self
+                on_release: app.root.menu_velocidad_carga.open()
+                divider: True
+                MDListItemLeadingIcon:
+                    icon:"fast-forward"
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.NARANJA_CLARO
+                MDListItemHeadlineText:
+                    text: "Velocidad De Carga De Datos"
+                MDListItemSupportingText:
+                    markup: True
+                    font_style: "Body"
+                    role: "small"
+                    text: 'Ajustar según el rendimiento del dispositivo'
+                MDListItemTertiaryText:
+                    markup: True
+                    text: f"[b]Actual:[/b] {root.tiempo_espera}"
+            MDListItem:
+                on_release: app.root.advertencia_cambio_especialidad()
+                divider: True
+                MDListItemLeadingIcon:
+                    icon:"account-switch"
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.NARANJA_CLARO
+                MDListItemHeadlineText:
+                    text: "Cambiar Especialidad"
+                MDListItemSupportingText:
+                    markup: True
+                    font_style: "Body"
+                    role: "small"
+                    text: "Volver a la pantalla de selección de especialidad"
+            MDListItem:
+                divider: True
+                id: item_tema_app
+                on_release: app.cambiar_tema(), app.root.actualizar_colores(), app.root.mostrar_materias_inicio(cambio_tema = True)
+                MDListItemLeadingIcon:
+                    icon:"contrast-circle"
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.NARANJA_CLARO
+                MDListItemHeadlineText:
+                    text: "Cambiar tema de la aplicación"
+                MDListItemSupportingText:
+                    markup: True
+                    text: f"[b]Actual[/b]: {root.tema}"
+
+            MDListItem:
+                divider: True
+                id: crear_copia
+                on_release: app.dialogo_crear_copia()
+                MDListItemLeadingIcon:
+                    icon: "content-save"
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.NARANJA_CLARO
+                MDListItemHeadlineText:
+                    text: "Crear copia de seguridad"
+                MDListItemSupportingText:
+                    markup: True
+                    text: f"Guarda una copia de tus datos"
+
+            MDListItem:
+                divider: True
+                id: cargar_copia
+                on_release: app.dialogo_cargar_copia()
+                MDListItemLeadingIcon:
+                    icon: "backup-restore"
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.NARANJA_CLARO
+                MDListItemHeadlineText:
+                    text: "Cargar copia de seguridad"
+                MDListItemSupportingText:
+                    markup: True
+                    text: f"Restaura una copia creada"
+            
+            MDListItem:
+                divider: True
+                id: item_ads
+                on_release: app.mostrar_anuncio()
+                MDListItemLeadingIcon:
+                    icon:"movie"
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.NARANJA_CLARO
+                MDListItemHeadlineText:
+                    text: "Ver anuncio"
+                MDListItemSupportingText:
+                    markup: True
+                    text: f"Apoya el desarrollo de la aplicación"
+
+<Login>:
+    name: "Login"
+    Image:
+        source: "fondo_login.jpg"
+        fit_mode: "fill"
+    MDBoxLayout:
+        orientation: 'vertical'
+        padding: 15
+        md_bg_color: [1,1,1,0]
+        
+        MDBoxLayout:
+            size_hint: 1, 0.15
+            md_bg_color: [1,1,1,0]
+            MDLabel:
+                markup: True
+                font_style: "Display"
+                role: "medium"
+                text:"[b]Unexum[/b]"
+                halign: "center"
+                theme_text_color: "Custom"
+                text_color: "black"
+
+        MDBoxLayout:
+            orientation: "vertical"
+            size_hint: 1, 0.8
+            md_bg_color: [1,1,1,0.7]
+            radius: dp(60)
+
+            BoxLayout:
+                id: PanelCentralDatos
+                orientation: "vertical"
+                size_hint: 1,1
+
+                MDRelativeLayout:
+                    size_hint: 1,.3
+                    orientation: "vertical"
+                    MDLabel:
+                        markup: True
+                        theme_font_size: "Custom"
+                        font_size: "20sp"
+                        text: "[b]¡Bienvenido![/b]"
+                        halign: "center"
+                        theme_text_color: "Custom"
+                        text_color: "black"
+                        pos_hint: {"center_x": 0.5,"center_y":0.4}
+                    MDLabel:
+                        markup: True
+                        font_style: "Title"
+                        role: "medium"
+                        text: "Ingrese sus datos para continuar"
+                        halign: "center"
+                        pos_hint: {"center_x": 0.5,"center_y":0.2}
+                        theme_text_color: "Custom"
+                        text_color: "black"
+
+                BoxLayout:
+                    size_hint: 1,None
+                    height: app.root.height*0.12
+                    orientation: 'horizontal'
+                    spacing: 20
+                    padding: app.root.width*0.145
+
+                    MDTextField:
+                        id: nombre_usuario
+                        mode: "filled"
+                        input_type: "text"
+                        write_tab: False
+                        size_hint_x: 0.7
+                        allow_copy: False
+                        use_bubble: False
+                        pos_hint: {'center_x': 0.6,'center_y': 0.5}
+                        theme_bg_color: "Custom"
+                        fill_color_normal: [1,1,1,0]
+                        fill_color_focus: [.9,.9,.9,0.1]
+                        theme_line_color: "Custom"
+                        line_color_normal: app.root.AZUL_CLARO
+                        line_color_focus: app.root.AZUL_OSCURO
+                        theme_text_color: "Custom"
+                        text_color_normal: "black"
+                        text_color_focus: "black"
+                        MDTextFieldLeadingIcon:
+                            icon: "account"
+                            theme_icon_color: "Custom"
+                            icon_color_normal: "black"
+                            icon_color_focus: "black"
+                        MDTextFieldHintText:
+                            markup: True
+                            text: "[b]Nombre y apellido[/b]"
+                            text_color_normal: "black"
+                            text_color_focus: app.root.AZUL_OSCURO
+                        MDTextFieldMaxLengthText:
+                            max_text_length: 30
+                        
+
+                BoxLayout:
+                    size_hint: 1,None
+                    height: app.root.height*0.12
+                    orientation: 'horizontal'
+                    spacing: 20
+                    padding: app.root.width*0.145
+
+                    MDIconButton:
+                        id: BotonEspecialidad
+                        style: "filled"
+                        pos_hint: {'center_x': 0.6,'center_y': 0.5}
+                        on_release: app.root.menu_especialidad.open()
+                        icon: "plus"
+                        theme_bg_color: "Custom"
+                        md_bg_color: app.root.AZUL_CLARO
+                        theme_icon_color: "Custom"
+                        icon_color: "black"
+
+                    MDTextField:
+                        id: campo_especialidad
+                        write_tab: False
+                        mode: "filled"
+                        size_hint_x: 0.3
+                        readonly: True
+                        on_focus: self.focus=False
+                        allow_copy: False
+                        use_bubble: False
+                        pos_hint: {'center_x': 0.6,'center_y': 0.5}
+                        text: app.root.texto_especialidad
+                        theme_bg_color: "Custom"
+                        fill_color_normal: [1,1,1,0]
+                        fill_color_focus: [.9,.9,.9,0.1]
+                        theme_line_color: "Custom"
+                        line_color_normal: app.root.AZUL_CLARO
+                        line_color_focus: app.root.AZUL_OSCURO
+                        theme_text_color: "Custom"
+                        text_color_normal: "black"
+                        text_color_focus: "black"
+                        selection_color: [1,1,1,0]
+                        MDTextFieldLeadingIcon:
+                            icon: app.root.icono_especialidad
+                            theme_icon_color: "Custom"
+                            icon_color_normal: "black"
+                            icon_color_focus: "black"
+                        MDTextFieldHintText:
+                            markup: True
+                            text: "Especialidad"
+                            text_color_normal: "black"
+                            text_color_focus: app.root.AZUL_OSCURO
+
+                BoxLayout:
+                    size_hint: 1,None
+                    height: app.root.height*0.12
+                    orientation: 'horizontal'
+                    spacing: 20
+                    padding: app.root.width*0.145
+
+                    MDIconButton:
+                        id: BotonMencion
+                        style: "filled"
+                        on_release: if app.root.texto_especialidad=="Ing. Electrónica": app.root.menu_mencion.open()
+                        pos_hint: {'center_x': 0.6,'center_y': 0.5}
+                        icon: "plus"
+                        theme_bg_color: "Custom"
+                        md_bg_color: app.root.AZUL_CLARO
+                        theme_icon_color: "Custom"
+                        icon_color: "black"
+        
+                    MDTextField:
+                        id: campo_mencion
+                        write_tab: False
+                        mode: "filled"
+                        size_hint_x: 0.7
+                        readonly: True
+                        on_focus: self.focus=False
+                        allow_copy: False
+                        pos_hint: {'center_x': 0.6,'center_y': 0.5}
+                        text: app.root.texto_mencion
+                        theme_bg_color: "Custom"
+                        md_bg_color: "white"
+                        fill_color_normal: [1,1,1,0]
+                        fill_color_focus: [.9,.9,.9,0.1]
+                        theme_line_color: "Custom"
+                        line_color_normal: app.root.AZUL_CLARO
+                        line_color_focus: app.root.AZUL_OSCURO
+                        theme_text_color: "Custom"
+                        text_color_normal: "black"
+                        text_color_focus: "black"
+                        selection_color: [1,1,1,0]
+                        MDTextFieldLeadingIcon:
+                            icon: app.root.icono_mencion
+                            theme_icon_color: "Custom"
+                            icon_color_normal: "black"
+                            icon_color_focus: "black"
+                        MDTextFieldHintText:
+                            markup: True
+                            text: "Mención"
+                            text_color_normal: "black"
+                            text_color_focus: app.root.AZUL_OSCURO
+
+                BoxLayout:
+                    size_hint: 1,None
+                    height: app.root.height*0.05
+
+                MDButton:
+                    style: "filled"
+                    pos_hint: {"center_x": 0.5}
+                    on_release: app.root.guardar_datos_login()
+                    theme_bg_color: "Custom"
+                    md_bg_color: app.root.AZUL_CLARO
+                    MDButtonText:
+                        markup: True
+                        text: "[color=#000000][b]Continuar[/b][/color]"
+                        
+                BoxLayout:
+                    size_hint: 1,.2
+
+        MDBoxLayout:
+            size_hint: 1, 0.05
+            md_bg_color: [1,1,1,0]
+            MDLabel:
+                text: app.version
+
+<Horario>:
+    name:"Horario"
+    MDBoxLayout:
+        id: contener_principal_horario
+        orientation: 'vertical'
+        md_bg_color: app.root.color_fondo_claro
+        padding: [0, app.size_status, 0, app.size_nav]
+
+        MDTopAppBar:
+            type: "small"
+            size_hint_y: .06
+            MDTopAppBarTitle:
+                markup: True
+                font_style: "Title"
+                role: "large"
+                text: "[b]Crear Horario[/b]" 
+            MDTopAppBarTrailingButtonContainer:
+                MDActionTopAppBarButton:    
+                    icon:"cloud-refresh"
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.NARANJA_CLARO
+                    on_release: app.root.iniciar_actualizacion_horario()
+                MDActionTopAppBarButton:
+                    icon:"help-circle"
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.AZUL_CLARO
+                    on_press: app.root.guia_horario=True
+                    on_release: app.root.mostrar_guia_horario()
+                MDActionTopAppBarButton:
+                    icon:"delete"
+                    theme_icon_color: "Custom"
+                    icon_color: "gray"
+                    on_release: app.root.advertencia_borrar_datos_horario()
+
+        MDBoxLayout:
+            orientation: "vertical"
+            size_hint: 1,0.1
+            padding: 3
+            md_bg_color: app.root.color_fondo
+            
+            MDCard:
+                style: "elevated"
+                orientation: "vertical"
+                theme_focus_color: "Custom"
+                focus_color: [1,1,1,0]
+                padding: self.height*0.06
+
+                MDGridLayout:
+                    cols: 2
+                    rows: 2
+                    spacing: dp(1)
+                        
+                    MDBoxLayout:
+                        size_hint_x: 0.5
+                        md_bg_color: app.root.color_fondo_claro
+                        radius: dp(5)
+                        MDLabel:
+                            markup: True
+                            text: f"[b]Lapso Académico:[/b]"
+                            halign: "center"
+                            valign: "center"
+                    MDBoxLayout:
+                        size_hint_x: 0.5
+                        md_bg_color: app.root.NARANJA_CLARO
+                        radius: dp(5)
+                        MDLabel:
+                            text: root.texto_lapso_academico
+                            halign: "center"
+                            valign: "center"
+
+                    MDBoxLayout:
+                        size_hint_x: 0.5
+                        md_bg_color: app.root.color_fondo_claro
+                        radius: dp(5)
+                        MDLabel:
+                            markup: True
+                            text: f"[b]Última actualización:[/b]"
+                            halign: "center"
+                            valign: "center"
+
+                    MDBoxLayout:
+                        size_hint_x: 0.5
+                        md_bg_color: app.root.NARANJA_CLARO
+                        radius: dp(5)
+                        MDLabel:
+                            text: root.texto_fecha_actualizacion
+                            halign: "center"
+                            valign: "center"
+
+        MDRelativeLayout:
+            orientation: "vertical"
+            size_hint: 1,0.74
+            padding: dp(3)
+            md_bg_color: app.root.color_fondo_claro
+            MDLabel:
+                markup: True
+                text: "[b]Seleccionar Materias[/b]"
+                halign: "center"
+                size_hint: 1,0.06
+                theme_font_size: "Custom"
+                font_size: "18sp"
+                pos_hint: {"center_x": 0.5, "center_y":0.95}
+
+            MDButton:
+                id: btn_inscribir
+                style: "filled"
+                theme_bg_color: "Custom"
+                md_bg_color: "#4EC38F"
+                pos_hint: {'center_x': 0.25,"center_y": 0.88}
+                on_release: app.root.dialogo_agregar_materias_horario(True)
+                MDButtonText:
+                    markup: True
+                    text: "[color=#000000][b]Para inscribir[/b][/color]"
+                MDButtonIcon:
+                    icon:"plus"
+                    theme_icon_color:"Custom"
+                    icon_color:"black"        
+
+            MDButton:
+                id: btn_todas
+                style: "filled"
+                theme_bg_color: "Custom"
+                md_bg_color: "#4EC38F"
+                pos_hint: {'center_x': 0.75,"center_y": 0.88}
+                on_release: app.root.dialogo_agregar_materias_horario(False)
+                MDButtonText:
+                    markup: True
+                    text: "[color=#000000][b]Mostrar Todas[/b][/color]"
+                MDButtonIcon:
+                    icon:"plus"
+                    theme_icon_color:"Custom"
+                    icon_color:"black"
+                    
+            MDBoxLayout:
+                id: contenedor_scrollview
+                size_hint: 1, 0.8
+                pos_hint: {"center_x": 0.5, "center_y": 0.4}
+                padding: dp(10)
+
+                MDScrollView:
+                    id: scroll_horario
+                    scroll_type: ["content"]
+                    size_hint_x: 1
+                    do_scroll_x: False
+
+                    MDList:
+                        id: contenedor_horario
+                        spacing: dp(4)
+                
+        MDRelativeLayout:
+            md_bg_color: app.root.color_fondo_claro
+            size_hint: 1,0.1
+            MDButton:
+                id: btn_generar
+                style: "filled"
+                theme_bg_color: "Custom"
+                md_bg_color: "#4EC38F"
+                pos_hint: {'center_x': 0.5,"center_y": 0.5}
+                on_release: app.root.accion_boton_crear_horario()
+                MDButtonText:
+                    markup: True
+                    text: "[color=#000000][b]Generar Horarios[/b][/color]"
+                MDButtonIcon:
+                    icon:"calendar-check"
+                    theme_icon_color:"Custom"
+                    icon_color:"black"
+
+                    
+        MDNavigationBar:
+            on_switch_tabs: app.root.on_switch_tabs(*args)
+            id: navigationbarhorario
+            disabled: app.root.navegacion_desactivada
+            MDNavigationItem:
+                theme_indicator_color: "Custom"
+                indicator_color: app.root.AZUL_MAS_CLARO
+                indicator_duration: 0.03
+                active: app.root.inicio_active
+                MDNavigationItemLabel:
+                    text: "Inicio"
+                MDNavigationItemIcon:
+                    icon: "home"
+
+            MDNavigationItem:
+                theme_indicator_color: "Custom"
+                indicator_color: app.root.AZUL_MAS_CLARO
+                indicator_duration: 0.03
+                active: app.root.notas_active
+                MDNavigationItemLabel:
+                    text: "Índice"
+                MDNavigationItemIcon:
+                    icon: "notebook-multiple"
+
+            MDNavigationItem:
+                theme_indicator_color: "Custom"
+                indicator_color: app.root.AZUL_MAS_CLARO
+                indicator_duration: 0.03
+                active: app.root.pensum_active
+                MDNavigationItemLabel:
+                    text:"Pensum"
+                MDNavigationItemIcon:
+                    icon: "view-list"
+
+            MDNavigationItem:
+                theme_indicator_color: "Custom"
+                indicator_color: app.root.AZUL_MAS_CLARO
+                indicator_duration: 0.03
+                active: app.root.horario_active
+                MDNavigationItemLabel:
+                    text:"Horario"
+                MDNavigationItemIcon:
+                    icon: "clock"
+
+<Evaluaciones>:
+    name:"Evaluaciones"
+    MDBoxLayout:
+        id: FondoEvaluaciones
+        orientation: 'vertical'
+        md_bg_color: app.root.color_fondo_claro
+        padding: [0, app.size_status, 0, app.size_nav]
+
+        MDTopAppBar:
+            type: "small"
+            size_hint_y: .06
+            
+            MDTopAppBarLeadingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon:"arrow-left"
+                    on_release: app.root.current= ("Inicio" if app.root.inicio_active else "Índice")
+
+            MDTopAppBarTitle:
+                markup: True
+                font_style: "Title"
+                role: "large"
+                text: "[b]Evaluaciones[/b]"
+
+            MDTopAppBarTrailingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon:"help-circle"
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.AZUL_CLARO
+                    on_release: app.root.mostrar_guia_evaluaciones()
+        
+        BoxLayout:
+            size_hint: 1, .3
+            padding: dp(8)
+            orientation: "vertical"
+            MDCard:
+                style: "elevated"
+                orientation: "vertical"
+                theme_focus_color: "Custom"
+                focus_color: [1,1,1,0]
+                padding: self.height*0.06
+                MDRelativeLayout:
+                    size_hint: 1,1
+                    MDLabel:
+                        text: f"{root.nombre_materia}"
+                        size_hint_x: 0.70
+                        pos_hint: {"center_y": 0.91}
+                        bold: True
+                        theme_font_size: "Custom"
+                        font_size: "19sp"
+                        theme_line_height: "Custom"
+                        line_height: 0.9
+                        halign: "center"
+                    MDLabel:
+                        text: "Nota para aprobar\nNota para sustitutiva\nNota total/Ponderación Total\nMedia porcentual\nMedia\nAporte al índice"
+                        pos_hint: {"center_y": 0.33}
+                        theme_line_height: "Custom"
+                        line_height: 1.4
+                        theme_font_size: "Custom"
+                        font_size: "14sp"
+                    MDLabel:
+                        text: f"{root.nota_pasar}\n{root.nota_sustituir}\n{root.nota_total}/{root.ponderacion_total}\n{root.media_porcentual}%\n{root.media}\n{('+'+str(root.aporte) if root.aporte>0 else root.aporte)}"
+                        halign: "right"
+                        pos_hint: {"center_y": 0.33}
+                        theme_line_height: "Custom"
+                        line_height: 1.4
+                        theme_font_size: "Custom"
+                        font_size: "14sp"
+                    BoxLayoutElevated:
+                        pos_hint: {"center_x": 0.87,"center_y": 0.91}
+                        size_hint: None,None
+                        height: dp(35)
+                        width: dp(84)
+                        radius: dp(10)
+                        md_bg_color: app.root.NARANJA_CLARO
+                        elevation_level: 2
+                        shadow_softness: 2
+                        shadow_offset: 0,-3
+
+                        MDLabel:
+                            pos_hint: {"center_y": 0.45}
+                            text: f"{root.nota_final}/100"
+                            halign: "center"
+                            theme_font_size: "Custom"
+                            font_size: "16sp"
+                        
+        BoxLayout:
+            size_hint: 1, 0.05
+            MDScrollView:
+                scroll_type: ["content"]
+                do_scroll_y: False
+                bar_width: 0
+                MDBoxLayout:
+                    adaptive_width: True
+                    orientation: "horizontal"
+                    padding: [dp(3), 0, dp(3), 0]
+                    spacing: dp(5)
+                    MDChip:
+                        id: chip_porcentual
+                        type: "filter"
+                        theme_bg_color: "Custom"
+                        selected_color: app.root.AZUL_MAS_CLARO
+                        md_bg_color: root.color_chip
+                        pos_hint: {"center_y": 0.5}
+                        on_active: app.root.cambio_porcentual(self)
+                        MDChipLeadingAvatar:
+                            icon: "blank"
+                        MDChipText:
+                            text: "Porcentual"
+                            theme_text_color: "Custom"
+                            halign: "center"
+                            text_color: ("white" if root.tema == "Oscuro" else "black")
+
+                    MDChip:
+                        id: chip_nota_extra
+                        type: "filter"
+                        theme_bg_color: "Custom"
+                        selected_color: app.root.AZUL_MAS_CLARO
+                        md_bg_color: root.color_chip
+                        pos_hint: {"center_y": 0.5}
+                        on_active: app.root.add_nota_extra(self)
+                        MDChipLeadingAvatar:
+                            icon: "blank"
+                        MDChipText:
+                            text: "Nota extra"
+                            theme_text_color: "Custom"
+                            halign: "center"
+                            text_color: ("white" if root.tema == "Oscuro" else "black")
+                    MDChip:
+                        id: chip_minima
+                        type: "filter"
+                        theme_bg_color: "Custom"
+                        selected_color: app.root.AZUL_MAS_CLARO
+                        md_bg_color: root.color_chip
+                        pos_hint: {"center_y": 0.5}
+                        on_active: app.root.nota_minima(self)
+                        MDChipLeadingAvatar:
+                            icon: "blank"
+                        MDChipText:
+                            text: "Nota mínima"
+                            theme_text_color: "Custom"
+                            halign: "center"
+                            text_color: ("white" if root.tema == "Oscuro" else "black")
+                    MDChip:
+                        id: chip_sustitutiva
+                        type: "filter"
+                        theme_bg_color: "Custom"
+                        selected_color: app.root.AZUL_MAS_CLARO
+                        md_bg_color: root.color_chip
+                        pos_hint: {"center_y": 0.5}
+                        on_active: app.root.nota_minima(self, True)
+                        MDChipLeadingAvatar:
+                            icon: "blank"
+                        MDChipText:
+                            text: "Nota Sustitutiva"
+                            theme_text_color: "Custom"
+                            halign: "center"
+                            text_color: ("white" if root.tema == "Oscuro" else "black")
+
+        MDRelativeLayout:
+            size_hint: 1, 0.05
+            MDDivider:
+                pos_hint: {"center_y": 0.9}
+            
+            MDLabel:
+                bold: True
+                text: "Lista de evaluaciones"
+                theme_font_size: "Custom"
+                font_size: "18sp"
+                halign: "center"
+                pos_hint: {"center_y": 0.2}
+            
+        
+        BoxLayout:
+            size_hint: 1, 0.45
+            id: contenedor_scrollview_evaluaciones
+            MDScrollView:
+                id: scroll_evaluaciones
+                scroll_type: ["content"]
+                do_scroll_x: False
+                MDGridLayout:
+                    id: GridLayoutEvaluaciones
+                    cols: 4
+                    size_hint: 1, 1
+                    padding: [0,dp(8),0,dp(8)]
+                    md_bg_color: app.root.color_fondo_claro
+                    adaptive_height: True
+                    BoxLayoutTitulosHorario:
+                        id: box_evaluacion
+                        width: GridLayoutEvaluaciones.width*0.42
+                        height: dp(40)
+                        md_bg_color: app.root.NARANJA_OSCURO
+                        MDLabel:
+                            markup: True
+                            text: "[b]Evaluación[/b]"
+                            halign: "center"
+                    BoxLayoutTitulosHorario:
+                        id: box_ponderacion
+                        width: GridLayoutEvaluaciones.width*0.15
+                        height: dp(40)
+                        md_bg_color: app.root.NARANJA_OSCURO
+                        MDLabel:
+                            markup: True
+                            text: "[b]Nota[/b]"
+                            halign: "center"
+                    BoxLayoutTitulosHorario:
+                        id: box_nota
+                        width: GridLayoutEvaluaciones.width*0.28
+                        height: dp(40)
+                        md_bg_color: app.root.NARANJA_OSCURO
+                        MDLabel:
+                            markup: True
+                            text: "[b]Ponderación[/b]"
+                            halign: "center"
+                    BoxLayoutTitulosHorario:
+                        id: box_porcentual
+                        width: GridLayoutEvaluaciones.width*0.15
+                        height: dp(40)
+                        md_bg_color: app.root.NARANJA_OSCURO
+                        MDLabel:
+                            markup: True
+                            text: "[b]Borrar[/b]"
+                            halign: "center"
+
+<Estadisticas>:
+    name: "Estadisticas"
+    figure_wgt: figure_wgt
+    MDBoxLayout:
+        id: FondoEstadisticas
+        orientation: 'vertical'
+        md_bg_color: app.root.color_fondo_claro
+        padding: [0, app.size_status, 0, app.size_nav]
+
+        MDTopAppBar:
+            type: "small"
+            size_hint_y: .06
+            
+            MDTopAppBarLeadingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon:"arrow-left"
+                    on_release: app.root.current = "Índice"
+
+            MDTopAppBarTitle:
+                markup: True
+                font_style: "Title"
+                role: "large"
+                text: "[b]Gráficos[/b]"
+            
+            MDTopAppBarTrailingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon:"help-circle"
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.AZUL_CLARO
+                    on_release: app.root.mostrar_guia_grafico()
+
+        BoxLayout:
+            size_hint: 1, 0.15
+            padding: dp(8)
+            orientation: "vertical"
+            MDCard:
+                style: "elevated"
+                orientation: "vertical"
+                theme_focus_color: "Custom"
+                focus_color: [1,1,1,0]
+                padding: self.height*0.06
+                MDRelativeLayout:
+                    size_hint: 1,1
+                    MDLabel:
+                        text: "  Ver gráfico por:"
+                        halign: "left"
+                        bold: True
+                        pos_hint: {"center_y": 0.8}
+                        theme_font_size: "Custom"
+                        font_size: "18sp"
+                    
+                    MDSegmentedButton:
+                        type: "small"
+                        size_hint_x: 1
+                        pos_hint: {"center_x": 0.53, "center_y": 0.3}
+                        
+                        MDSegmentedButtonItem:
+                            size_hint_x: None
+                            width: dp(105)
+                            on_release: app.root.grafico("Materia")
+                            theme_bg_color: "Custom"
+                            selected_color: app.root.AZUL_MAS_CLARO
+                            MDSegmentButtonIcon:
+                                icon: "book"
+                                theme_icon_color: "Custom"
+                                icon_color: ("white" if root.tema == "Oscuro" else "black")
+                            MDSegmentButtonLabel:
+                                text: "Materia"
+                                theme_text_color: "Custom"
+                                text_color: ("white" if root.tema == "Oscuro" else "black")
+                        MDSegmentedButtonItem:
+                            size_hint_x: None
+                            width: dp(105)
+                            on_release: app.root.grafico("Semestre")
+                            theme_bg_color: "Custom"
+                            selected_color: app.root.AZUL_MAS_CLARO
+                            MDSegmentButtonIcon:
+                                icon: "book-multiple"
+                                theme_icon_color: "Custom"
+                                icon_color: ("white" if root.tema == "Oscuro" else "black")
+                            MDSegmentButtonLabel:
+                                text: "Semestre"
+                                theme_text_color: "Custom"
+                                text_color: ("white" if root.tema == "Oscuro" else "black")
+                        MDSegmentedButtonItem:
+                            size_hint_x: None
+                            width: dp(110)
+                            on_release: app.root.grafico("Progresion")
+                            theme_bg_color: "Custom"
+                            selected_color: app.root.AZUL_MAS_CLARO
+                            MDSegmentButtonIcon:
+                                icon: "progress-check"
+                                theme_icon_color: "Custom"
+                                icon_color: ("white" if root.tema == "Oscuro" else "black")
+                            MDSegmentButtonLabel:
+                                text: "Progresión"
+                                theme_text_color: "Custom"
+                                text_color: ("white" if root.tema == "Oscuro" else "black")
+        
+        BoxLayout:
+            size_hint: 1, 0.85
+            orientation: "vertical"
+            padding: dp(5)
+            radius: dp(5)
+            MatplotFigure:
+                id: figure_wgt
+
+<Widget_Principal>
+    Screen:
+        name: "Inicio"
+        MDBoxLayout:
+            orientation: 'vertical'
+            md_bg_color: root.color_fondo_claro
+            id: box_principal_inicio
+            spacing: dp(1)
+            padding: [0, app.size_status, 0, app.size_nav]
+
+            MDTopAppBar:
+                type: "small"
+                size_hint_y: .06
+
+                MDTopAppBarTitle:
+                    markup: True
+                    font_style: "Title"
+                    role: "large"
+                    text: "[b]Unexum[/b]" 
+                
+                MDTopAppBarTrailingButtonContainer:
+                    MDCircularProgressIndicator:
+                        id: indicador_progreso_carga
+                        size_hint: None,None
+                        size: "14dp","14dp"
+                        pos_hint: {"center_y":0.5,"center_x":0}
+                        color: root.NARANJA_CLARO
+                        
+                    MDActionTopAppBarButton:
+                        icon:"help-circle"
+                        theme_icon_color: "Custom"
+                        icon_color: root.AZUL_CLARO
+                        on_press: root.guia_inicio=True
+                        on_release: root.mostrar_guia_inicio()
+                    MDActionTopAppBarButton:
+                        id: BotonAppBar
+                        icon:"dots-vertical"
+                        on_release: root.menu_appbar.open()
+            
+            MDDivider:
+                size_hint_x: 1
+                pos_hint: {"center_x": .5, "center_y": .5}
+                color: root.color_fondo_mas_claro
+
+            MDBoxLayout:
+                orientation: "vertical"
+                padding: dp(8)
+                size_hint: 1,0.29
+                
+                MDCard:
+                    style: "elevated"
+                    orientation: "vertical"
+                    theme_focus_color: "Custom"
+                    focus_color: [1,1,1,0]
+                    padding: self.height*0.06
+                    MDRelativeLayout:
+                        size_hint: 1,0.15
+                        MDLabel:
+                            id: LabelNombreInicio
+                            markup: True
+                            text: f"[b]{root.texto_nombre}[/b]"
+                            halign: "left"
+                            theme_font_size: "Custom"
+                            font_size: "20sp"
+                            pos_hint: {"center_y": 0.35}
+                        BoxLayoutElevated:
+                            pos_hint_x: None
+                            pos_hint: {"center_y": 0.5}
+                            x: LabelNombreInicio.width-self.width
+                            size_hint: None,None
+                            height: dp(35)
+                            width: self.height
+                            radius: self.height/2
+                            md_bg_color: root.NARANJA_CLARO
+                            elevation_level: 2
+                            shadow_softness: 2
+                            shadow_offset: 0,-3
+
+                            MDLabel:
+                                pos_hint: {"center_y": 0.45}
+                                text: f"{root.semestre_actual}"
+                                halign: "center"
+                                theme_font_name:"Custom"
+                                font_name: "Cinzel-Bold.ttf"
+                                theme_font_size: "Custom"
+                                font_size: "16sp"
+
+                    MDRelativeLayout:
+                        size_hint: 1,0.65
+                        MDLabel:
+                            markup: True
+                            text: (f"[b]Especialidad:[/b] {root.texto_especialidad}{root.texto_mencion_label}\n[b]Índice académico:[/b] {root.indice_academico}\n[b]U.C aprobadas:[/b] {root.unidades_aprobadas}/{root.unidades_totales} ({round(root.porcentaje_uc_aprobadas)}%)")
+                            halign: "left"
+                            valign: "center"
+                            theme_font_size: "Custom"
+                            font_size: "14sp"
+                            theme_line_height: "Custom"
+                            line_height: 1.6
+
+                    MDRelativeLayout:
+                        size_hint: 1,0.20
+                        MDLabel:
+                            markup: True
+                            text: f"[b]Materias aprobadas:[/b] {root.materias_aprobadas}/{root.materias_totales} ({round(root.porcentaje_aprobadas)}%)"
+                            halign: "center"
+                            pos_hint: {"center_y":0.8}
+
+                        MDLinearProgressIndicator:
+                            size_hint_x: .7
+                            size_hint_y: None
+                            height: dp(6)
+                            indicator_color: root.VERDE
+                            type: "determinate"
+                            radius: dp(3)
+                            value: float(root.porcentaje_aprobadas)
+                            pos_hint: {"center_x": .5,"center_y":.25}
+
+            MDTabsPrimary:
+                id: tabs_inicio
+                pos_hint: {"center_x": 0.5, "y": 1}
+                label_only: True
+                
+                MDTabsItem:
+                    MDTabsItemText:
+                        markup: True
+                        text:"[b]Materias inscritas[/b]"
+                
+                MDTabsItem:
+                    on_release: root.mostrar_materias_inicio()
+                    MDTabsItemText:
+                        markup: True
+                        text:"[b]Disponibles para inscribir[/b]"
+
+                MDDivider:
+
+                MDTabsCarousel:
+                    id: carousel_inicio
+                    size_hint_y: None
+                    height: box_principal_inicio.height*0.45
+                    ignore_perpendicular_swipes: True
+
+                    MDScrollView:
+                        do_scroll_x: False
+                        id: scroll_inicio_inscritas
+                        bar_width: root.width*0.02
+                        scroll_type: ["content"]
+                        MDGridLayout:
+                            id: grid_layout_inicio_inscritas
+                            cols: 3
+                            adaptive_height: True
+                            spacing: [0,dp(1)]
+
+                            MDBoxLayout:
+                                size_hint: None,None
+                                height: root.height*0.05
+                                width: grid_layout_inicio_inscritas.width*0.15
+                                theme_bg_color: "Custom"
+                                md_bg_color: root.NARANJA_OSCURO
+                                radius: dp(7)
+                                MDLabel:
+                                    markup: True
+                                    text: "[b]Notas[/b]"
+                                    halign: "center"
+                            
+                            MDBoxLayout:
+                                size_hint: None,None
+                                height: root.height*0.05
+                                width: grid_layout_inicio_inscritas.width*0.7
+                                theme_bg_color: "Custom"
+                                md_bg_color: root.NARANJA_OSCURO
+                                radius: dp(7)
+                                MDLabel:
+                                    markup: True
+                                    text: "[b]Asignatura[/b]"
+                                    halign: "center"
+
+                            MDBoxLayout:
+                                size_hint: None,None
+                                height: root.height*0.05
+                                width: grid_layout_inicio_inscritas.width*0.15
+                                theme_bg_color: "Custom"
+                                md_bg_color: root.NARANJA_OSCURO
+                                radius: dp(7)
+                                MDLabel:
+                                    markup: True
+                                    text: "[b]U.C.[/b]"
+                                    halign: "center"
+
+                    MDScrollView:
+                        do_scroll_x: False
+                        id: scroll_inicio_disponibles
+                        bar_width: root.width*0.02
+                        scroll_type: ["content"]
+                        MDGridLayout:
+                            id: grid_layout_inicio_disponibles
+                            cols: 3
+                            adaptive_height: True
+                            spacing: [0,dp(1)]
+                            MDBoxLayout:
+                                size_hint: None,None
+                                height: root.height*0.05
+                                width: grid_layout_inicio_disponibles.width*0.18
+                                theme_bg_color: "Custom"
+                                md_bg_color: root.NARANJA_OSCURO
+                                radius: dp(7)
+                                MDLabel:
+                                    markup: True
+                                    text: "[b]Código[/b]"
+                                    halign: "center"
+                            MDBoxLayout:
+                                size_hint: None,None
+                                height: root.height*0.05
+                                width: grid_layout_inicio_disponibles.width*0.69
+                                theme_bg_color: "Custom"
+                                md_bg_color: root.NARANJA_OSCURO
+                                radius: dp(7)
+                                MDLabel:
+                                    markup: True
+                                    text: "[b]Asignatura[/b]"
+                                    halign: "center"
+                            MDBoxLayout:
+                                size_hint: None,None
+                                height: root.height*0.05
+                                width: grid_layout_inicio_disponibles.width*0.13
+                                theme_bg_color: "Custom"
+                                md_bg_color: root.NARANJA_OSCURO
+                                radius: dp(7)
+                                MDLabel:
+                                    markup: True
+                                    text: "[b]U.C.[/b]"
+                                    halign: "center"
+
+            MDNavigationBar:
+                on_switch_tabs: root.on_switch_tabs(*args)
+                id: navigationbarinicio
+                disabled: root.navegacion_desactivada
+                MDNavigationItem:
+                    id: navigationinicio
+                    active: root.inicio_active
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    MDNavigationItemLabel:
+                        text: "Inicio"
+                    MDNavigationItemIcon:
+                        icon: "home"
+
+                MDNavigationItem:
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    active: root.notas_active
+                    MDNavigationItemLabel:
+                        text: "Índice"
+                    MDNavigationItemIcon:
+                        icon: "notebook-multiple"
+
+                MDNavigationItem:
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    active: root.pensum_active
+                    MDNavigationItemLabel:
+                        text:"Pensum"
+                    MDNavigationItemIcon:
+                        icon: "view-list"
+
+                MDNavigationItem:
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    active: root.horario_active
+                    MDNavigationItemLabel:
+                        text:"Horario"
+                    MDNavigationItemIcon:
+                        icon: "clock"
+
+    Screen:
+        name: "Índice"
+        MDBoxLayout:
+            orientation: 'vertical'
+            md_bg_color: root.color_fondo
+            id: box_principal_indice
+            padding: [0, app.size_status, 0, app.size_nav]
+
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint: 1,0.1
+                padding: 3
+                md_bg_color: root.color_fondo
+                
+                MDCard:
+                    style: "elevated"
+                    orientation: "vertical"
+                    theme_focus_color: "Custom"
+                    focus_color: [1,1,1,0]
+                    padding: self.height*0.06
+
+                    MDGridLayout:
+                        cols: 2
+                        rows: 2
+                        spacing: dp(1)
+                        MDBoxLayout:
+                            size_hint_x: 0.9
+                            
+                            MDBoxLayout:
+                                size_hint_x: 0.5
+                                md_bg_color: root.color_fondo_claro
+                                radius: dp(5)
+                                MDLabel:
+                                    markup: True
+                                    text: f"[b]Índice Académico:[/b]"
+                                    halign: "center"
+                            MDBoxLayout:
+                                size_hint_x: 0.5
+                                md_bg_color: root.NARANJA_CLARO
+                                radius: dp(5)
+                                MDLabel:
+                                    text: f"{root.indice_academico}"
+                                    halign: "center"
+                                    
+                        MDRelativeLayout:
+                            size_hint_x: 0.1
+                            MDIconButton:
+                                icon:"help-circle"
+                                theme_icon_color: "Custom"
+                                icon_color: root.AZUL_CLARO
+                                style: "standard"
+                                on_press: root.guia_indice=True
+                                on_release: root.mostrar_guia_indice()
+                                size_hint_y: 0.85
+                                size_hint_x: None
+                                width: self.height
+                                pos_hint: {"center_x": 0.5,"center_y": 0.5}
+
+
+                        MDBoxLayout:
+                            size_hint_x: 0.9
+                            MDBoxLayout:
+                                size_hint_x: 0.5
+                                md_bg_color: root.color_fondo_claro
+                                radius: dp(5)
+                                MDLabel:
+                                    markup: True
+                                    text: f"[b]Mención Honorífica:[/b]"
+                                    halign: "center"
+                            BoxLayoutElevated:
+                                size_hint_x: 0.5
+                                md_bg_color: root.NARANJA_CLARO
+                                radius: dp(5)
+                                MDLabel:
+                                    text: f"{root.mencion_honorifica}"
+                                    halign: "center"
+                        MDRelativeLayout:
+                            size_hint_x: 0.1
+                            MDIconButton:
+                                icon:"delete"
+                                theme_icon_color: "Custom"
+                                icon_color: "gray"
+                                style: "standard"
+                                on_release: root.advertencia_borrar_notas()
+                                size_hint_y: 0.85
+                                size_hint_x: None
+                                width: self.height
+                                pos_hint: {"center_x": 0.5,"center_y": 0.5}
+
+            
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint: 1,0.9
+                theme_bg_color: "Custom"
+                md_bg_color: root.color_fondo
+
+                CustomMDScrollView:
+                    do_scroll_x: False
+                    id: scroll_notas
+                    bar_width: root.width*0.04
+                    scroll_type: ["bars","content"]
+    
+                    MDGridLayout:
+                        id: menu_notas_materias
+                        size_hint_y: None
+                        height: (1+dp(64))*root.materias_totales+10*dp(45)
+                        spacing: [0,1]
+                        cols: 1
+                        size_hint_x: 1
+                        theme_bg_color: "Custom"
+                        md_bg_color: root.color_fondo
+            
+            MDNavigationBar:
+                on_switch_tabs: root.on_switch_tabs(*args)
+                id: navigationbarindice
+                disabled: root.navegacion_desactivada
+                MDNavigationItem:
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    active: root.inicio_active
+                    MDNavigationItemLabel:
+                        text: "Inicio"
+                    MDNavigationItemIcon:
+                        icon: "home"
+
+                MDNavigationItem:
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    active: root.notas_active
+                    MDNavigationItemLabel:
+                        text: "Índice"
+                    MDNavigationItemIcon:
+                        icon: "notebook-multiple"
+
+                MDNavigationItem:
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    active: root.pensum_active
+                    MDNavigationItemLabel:
+                        text:"Pensum"
+                    MDNavigationItemIcon:
+                        icon: "view-list"
+
+                MDNavigationItem:
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    active: root.horario_active
+                    MDNavigationItemLabel:
+                        text:"Horario"
+                    MDNavigationItemIcon:
+                        icon: "clock"
+    
+        MDFloatLayout:
+            MDFabButton:
+                icon: "chart-line"
+                theme_icon_color: "Custom"
+                icon_color: root.NARANJA_CLARO
+                style: "standard"
+                pos_hint: {"center_y": 0.22, "center_x": 0.87}
+                on_release: root.ir_a_estadisticas()
+    
+    Screen:
+        name: "Pensum"
+        MDBoxLayout:
+            orientation: 'vertical'
+            md_bg_color: root.color_fondo
+            id: box_principal_pensum
+            padding: [0, app.size_status, 0, app.size_nav]
+
+            MDBoxLayout:
+                size_hint: 1,0.13
+                padding: 3
+                orientation: "vertical"
+                md_bg_color: root.color_fondo
+                
+                MDCard:
+                    style: "elevated"
+                    orientation: "vertical"
+                    theme_focus_color: "Custom"
+                    focus_color: [1,1,1,0]
+                    padding: self.height*0.06
+
+                    MDGridLayout:
+                        cols: 2
+                        rows: 3
+                        spacing: dp(1)
+
+                        MDBoxLayout:
+                            size_hint_x: 0.9
+
+                            MDBoxLayout:
+                                size_hint_x: 0.55
+                                md_bg_color: root.color_fondo_claro
+                                radius: dp(5)
+                                MDLabel:
+                                    markup: True
+                                    text: f"[b]Materias Aprobadas:[/b]"
+                                    halign: "center"
+                            MDBoxLayout:
+                                size_hint_x: 0.45
+                                md_bg_color: root.NARANJA_CLARO
+                                radius: dp(5)
+                                MDLabel:
+                                    text: f"{root.materias_aprobadas}/{root.materias_totales}"
+                                    halign: "center"
+                        MDRelativeLayout:
+                            size_hint_x: 0.1
+                            MDIconButton:
+                                icon:"help-circle"
+                                theme_icon_color: "Custom"
+                                icon_color: root.AZUL_CLARO
+                                style: "standard"
+                                on_press: root.guia_pensum=True
+                                on_release: root.mostrar_guia_pensum()
+                                size_hint_y: 1
+                                size_hint_x: None
+                                width: self.height
+                                pos_hint: {"center_x": 0.5,"center_y": 0.2}
+                                
+
+                        MDBoxLayout:
+                            size_hint_x: 0.9
+                            MDBoxLayout:
+                                size_hint_x: 0.55
+                                md_bg_color: root.color_fondo_claro
+                                radius: dp(5)
+                                MDLabel:
+                                    markup: True
+                                    text: f"[b]U.C. Aprobadas:[/b]"
+                                    halign: "center"
+                            MDBoxLayout:
+                                size_hint_x: 0.45
+                                md_bg_color: root.NARANJA_CLARO
+                                radius: dp(5)
+                                MDLabel:
+                                    text: f"{root.unidades_aprobadas}/{root.unidades_totales}"
+                                    halign: "center"
+
+                        MDRelativeLayout:
+                            size_hint_x: 0.1
+
+                        MDBoxLayout:
+                            size_hint_x: 0.9
+                            MDBoxLayout:
+                                size_hint_x: 0.55
+                                md_bg_color: root.color_fondo_claro
+                                radius: dp(5)
+                                MDLabel:
+                                    markup: True
+                                    text: f"[b]Semestre Actual:[/b]"
+                                    halign: "center"
+                            BoxLayoutElevated:
+                                size_hint_y: 1
+                                size_hint_x: 0.45
+                                md_bg_color: root.NARANJA_CLARO
+                                radius: dp(5)
+
+                                MDLabel:
+                                    text: f"{root.semestre_actual}"
+                                    halign: "center"
+                                    theme_font_name:"Custom"
+                                    font_name: "Cinzel-Bold.ttf"
+                                    theme_font_size: "Custom"
+                                    font_size: "18sp"
+                                    pos_hint: {"center_y": 0.35}
+                        
+                        MDRelativeLayout:
+                            size_hint_x: 0.1
+                            MDIconButton:
+                                icon:"notebook-edit"
+                                theme_icon_color: "Custom"
+                                icon_color: "gray"
+                                style: "standard"
+                                on_release: root.acceso_directo_electivas()
+                                size_hint_y: 1
+                                size_hint_x: None
+                                width: self.height
+                                pos_hint: {"center_x": 0.5,"center_y": 0.8}
+            
+            MDBoxLayout:
+                orientation: "vertical"
+                size_hint: 1,0.87
+                padding: 0
+                theme_bg_color: "Custom"
+                md_bg_color: root.color_fondo
+
+                CustomMDScrollView:
+                    do_scroll_x: False
+                    id: scroll_pensum
+                    bar_width:root.width*0.04
+                    scroll_type: ["bars","content"]
+    
+                    MDGridLayout:
+                        id: menu_pensum_materias
+                        size_hint_y: None
+                        height: (1+dp(80))*root.materias_totales+(10*dp(45))
+                        spacing: [0,1]
+                        cols: 1
+                        size_hint_x: 1
+                        theme_bg_color: "Custom"
+                        md_bg_color: root.color_fondo  
+
+            MDNavigationBar:
+                on_switch_tabs: root.on_switch_tabs(*args)
+                id: navigationbarpensum
+                disabled: root.navegacion_desactivada
+                MDNavigationItem:
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    active: root.inicio_active
+                    MDNavigationItemLabel:
+                        text: "Inicio"
+                    MDNavigationItemIcon:
+                        icon: "home"
+
+                MDNavigationItem:
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    active: root.notas_active
+                    MDNavigationItemLabel:
+                        text: "Índice"
+                    MDNavigationItemIcon:
+                        icon: "notebook-multiple"
+
+                MDNavigationItem:
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    active: root.pensum_active
+                    MDNavigationItemLabel:
+                        text:"Pensum"
+                    MDNavigationItemIcon:
+                        icon: "view-list"
+
+                MDNavigationItem:
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    active: root.horario_active
+                    MDNavigationItemLabel:
+                        text:"Horario"
+                    MDNavigationItemIcon:
+                        icon: "clock"
+
+                    
+    
+            
+    
+            
+
+                        
+
+
+
+
+            
+
+    

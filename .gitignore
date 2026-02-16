@@ -205,3 +205,11 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+secrets.py
+
+
+/base_datos_horario
+/datos_usuario
+/Horarios
+/Copias de seguridad
