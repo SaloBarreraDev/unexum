@@ -82,7 +82,7 @@ RUTA_ARCHIVOS = None
 if platform == "android":
     Config.remove_option("input", "mouse")
     from androidstorage4kivy import SharedStorage, Chooser
-    from admob4kivy import AdmobManager
+    from src.admob4kivy import AdmobManager
     from android import mActivity  # type: ignore
     context = mActivity.getApplicationContext()
     result = context.getExternalFilesDir(None)
