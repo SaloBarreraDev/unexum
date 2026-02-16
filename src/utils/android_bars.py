@@ -1,15 +1,24 @@
 from kivy.utils import platform
+from kivy.logger import Logger
 if platform == "android":
     try:
         from jnius import PythonJavaClass, autoclass, cast, java_method
+        from android.runnable import run_on_ui_thread  # type: ignore
         Environment = autoclass("android.os.Environment")
     except ImportError:
         Logger.error(f"Error de importación de modulos android")
+        def run_on_ui_thread(func):
+            return func
+
+
+def get_android_api():
     try:
         from android import api_version  # type: ignore
+        return api_version
     except:
         Logger.warning(f"No se pudo determinar la versión de api, usando 0")
-        api_version = 0
+        return 0
+
 
 def get_height_of_bar(bar_target=None):
     bar_target = bar_target or "status"

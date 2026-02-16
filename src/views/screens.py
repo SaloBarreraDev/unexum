@@ -6,6 +6,7 @@ from kivy.properties import (
     ColorProperty,
 )
 from kivy.utils import platform
+from ..utils.secrets import REWARDED
 # Pantallas
 class Acerca(Screen):
     pass

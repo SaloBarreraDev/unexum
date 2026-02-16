@@ -26,8 +26,6 @@ except ImportError:
         return func
 from src.android_permissions import AndroidPermissions
 from kivymd.app import MDApp
-import matplotlib.pyplot as plt
-import kivy_matplotlib_widget
 from kivy.network.urlrequest import UrlRequest
 from kivymd.uix.menu import MDDropdownMenu
 from kivy.metrics import dp
@@ -61,7 +59,7 @@ from src.expansionpanel import FMDExpansionPanel
 from kivy.resources import resource_add_path
 
 #Importaciones de modulos
-from src.utils import (get_height_of_bar, set_status_bar_color, 
+from src.utils import (get_height_of_bar, set_status_bar_color, get_android_api,
     set_status_bar_icons_dark, set_navigation_bar_black, VERSION,
     URL_BASE_DATOS_HORARIO, URL_VERSION_HORARIO, interpolar_nota)
 from src.utils.secrets import REWARDED, INTERSTITIAL
@@ -98,6 +96,8 @@ os.makedirs(RUTA_DATOS, exist_ok = True)
 matplotlib_cache_dir = join(RUTA_DATOS, "matplotlib_cache")
 os.makedirs(matplotlib_cache_dir, exist_ok=True)
 os.environ["MPLCONFIGDIR"] = matplotlib_cache_dir
+import matplotlib.pyplot as plt
+import kivy_matplotlib_widget
 
 #Obtener ruta de la carpepta Assets
 # 1. Obtiene la ruta donde está este archivo (src/main.py)
@@ -1219,7 +1219,7 @@ class Widget_Principal(ScreenManager):
                     font_size="14sp",
                     markup=True,
                     halign="left",
-                    on_ref_press= (lambda instance, url = "https://github.com/SaloBarreraDev/unexum": app.abrir_enlace(url))),
+                    on_ref_press= (lambda x, ref: app.abrir_enlace(ref))),
                 size_hint_x=0.95,
                 size_hint_y=None,
                 radius=[dp(10), dp(10), dp(10), dp(10)],
@@ -5493,7 +5493,7 @@ class MainApp(MDApp):
             self.widget_principal.current = "Login"
             self.widget_principal.transition = SlideTransition(direction="left")
 
-        if platform == "android" and api_version >= 35:
+        if platform == "android" and get_android_api() >= 35:
             self.size_status = get_height_of_bar("status")
             self.size_nav = get_height_of_bar("navigation")
 
@@ -5552,9 +5552,12 @@ class MainApp(MDApp):
         elif pantalla == "Licencias":
             self.widget_principal.add_widget(Licencias())
 
-    def abrir_enlace(self, enlace, *args):
+    def abrir_enlace(self, ref, *args):
         import webbrowser
-        webbrowser.open(enlace)
+        if ref=="github":
+            webbrowser.open("https://github.com/SaloBarreraDev/unexum")
+        elif ref=="politica":
+            webbrowser.open("https://docs.google.com/document/d/16mJz5LKKK6wMVRmdDqBrLc7rNaD5qulJDlUclffxa5k/edit?usp=sharing")
 
     def dialogo_crear_copia(self, *args):
         dialogo_advertencia = MDDialog(
