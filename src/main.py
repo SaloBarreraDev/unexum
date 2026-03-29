@@ -72,7 +72,7 @@ from src.views.custom_widgets import (BoxLayoutElevated, CustomMDScrollView, Box
     SelectableLabelHorario, RVHorario, BoxConRippleInicio, ExpansionPanelItem, TrailingPressedIconButton,
     Seccion)
 from src.models import Materia, Evaluacion
-Config.set('kivy', 'log_level', 'info')
+Config.set('kivy', 'log_level', 'debug')
 Config.set("graphics", "maxfps", "120")
 Window.softinput_mode = "below_target"
 RUTA_ARCHIVOS = None
@@ -4308,18 +4308,19 @@ class Widget_Principal(ScreenManager):
             contenedor = self.pantalla_horario.ids["contenedor_horario"]
             for codigo in self.datos_usuario_horario["Materias"]:
                 await ak.sleep(0)
-                secciones_disponibles = self.datos_usuario_horario[codigo]
-                materia = self.buscar_por_codigo(codigo)
-                panel = ExpansionPanelItem(materia)
-                for seccion in secciones_disponibles:
-                    dias = self.formato_a_dias(seccion["FORMATO"])
-                    aulas = self.simplificar_aulas(seccion["AULA"])
-                    widget_seccion = Seccion(materia, seccion["SEC"], seccion["PROFESOR"], dias, seccion["ACTIVA"], aulas)
-                    panel.ids["content"].add_widget(widget_seccion)
+                if codigo in self.datos_usuario_horario.keys():
+                    secciones_disponibles = self.datos_usuario_horario[codigo]
+                    materia = self.buscar_por_codigo(codigo)
+                    panel = ExpansionPanelItem(materia)
+                    for seccion in secciones_disponibles:
+                        dias = self.formato_a_dias(seccion["FORMATO"])
+                        aulas = self.simplificar_aulas(seccion["AULA"])
+                        widget_seccion = Seccion(materia, seccion["SEC"], seccion["PROFESOR"], dias, seccion["ACTIVA"], aulas)
+                        panel.ids["content"].add_widget(widget_seccion)
 
-                self.datos_usuario_horario[codigo] = secciones_disponibles
+                    self.datos_usuario_horario[codigo] = secciones_disponibles
 
-                contenedor.add_widget(panel)
+                    contenedor.add_widget(panel)
 
         if self.datos_usuario_horario["Materias"]:
             ak.start(carga_asincrona(self))
@@ -4569,6 +4570,7 @@ class Widget_Principal(ScreenManager):
                 )
                 dialogo_advertencia.add_widget(botones)
                 dialogo_advertencia.open()
+            self.guardar_datos_horario()
 
 
         ak.start(carga_asincrona(self))
