@@ -72,7 +72,7 @@ from src.views.custom_widgets import (BoxLayoutElevated, CustomMDScrollView, Box
     SelectableLabelHorario, RVHorario, BoxConRippleInicio, ExpansionPanelItem, TrailingPressedIconButton,
     Seccion)
 from src.models import Materia, Evaluacion
-Config.set('kivy', 'log_level', 'debug')
+Config.set('kivy', 'log_level', 'info')
 Config.set("graphics", "maxfps", "120")
 Window.softinput_mode = "below_target"
 RUTA_ARCHIVOS = None
