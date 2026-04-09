@@ -23,7 +23,7 @@ Este proyecto demuestra la aplicación de principios de **Ingeniería Industrial
 
 La generación de horarios se aborda como un problema combinatorio complejo.
 
-* **El Problema:** La combinación de múltiples materias con diversas secciones genera un espacio de búsqueda exponencial (, donde  son secciones y  materias), resultando en cientos de permutaciones, muchas de ellas inválidas.
+* **El Problema:** La combinación de múltiples materias con diversas secciones genera un espacio de búsqueda exponencial, resultando en cientos de permutaciones, muchas de ellas inválidas.
 * **La Solución:** Se implementó un algoritmo basado en el **Producto Cartesiano** (utilizando `itertools`). El sistema evalúa todas las permutaciones, aplica restricciones lógicas (choques de tiempo) y optimiza la presentación de resultados para la toma de decisiones.
 
 ### 2. Modelado de Dependencias (Grafos)
