@@ -1,4 +1,5 @@
 from kivymd.app import MDApp
+from src.utils import interpolar_nota
 from kivymd.uix.scrollview import MDScrollView
 from kivymd.uix.behaviors import CommonElevationBehavior, RectangularRippleBehavior
 from kivymd.uix.relativelayout import MDRelativeLayout
@@ -17,7 +18,11 @@ from kivymd.uix.behaviors import RotateBehavior
 from kivymd.uix.list import MDListItemTrailingIcon
 from kivy.properties import (StringProperty, ObjectProperty, BooleanProperty,
     ColorProperty)
-
+from kivymd.uix.snackbar import MDSnackbar, MDSnackbarText, MDSnackbarSupportingText
+from kivy.clock import Clock
+from kivy.metrics import dp
+from kivy.uix.relativelayout import RelativeLayout
+import threading
 class BoxLayoutElevated(
     RectangularRippleBehavior, CommonElevationBehavior, MDRelativeLayout
 ):
@@ -59,24 +64,263 @@ class BoxConRipple(RectangularRippleBehavior, MDRelativeLayout):
     ripple_color = [0.5, 0.5, 0.5, 0.1]
 
 # Widgets de indice custom
-class BoxConRippleIndice(RectangularRippleBehavior, MDRelativeLayout):
+class BoxConRippleIndice(RecycleDataViewBehavior, RectangularRippleBehavior, RelativeLayout):
+    nombre_materia = StringProperty("")
+    codigo_materia = StringProperty("")
+    uc = StringProperty("")
+    color_fondo = ColorProperty()
+    nota = ObjectProperty()
+    index = 0
     ripple_duration_in_fast = 0.1
     ripple_duration_in_slow = 0
     ripple_duration_out = 0.1
     ripple_color = [0.5, 0.5, 0.5, 0.1]
+    _is_recycling = False
+
+    def on_text(self, text, focus, instance):
+        app = MDApp.get_running_app()
+        wp = app.widget_principal
+        if self._is_recycling:
+            return
+
+        lista_materias = wp.get_materias()
+        materia = wp.buscar_por_codigo(self.codigo_materia)
+        if not focus:
+            if text == "":
+                materia.nota = ""
+                wp.ids.rv_indice.data[self.index]["nota"] = ""
+                instance.text = ""
+                wp.calcular_indice()
+                wp.guardar_datos(lista_materias)
+            else:
+                if wp.es_numero(text):
+                    if float(text) >= 1 and float(text) <= 9:
+                        nota_redondeada = round(float(text), 1)
+                        materia.nota = nota_redondeada
+                        wp.ids.rv_indice.data[self.index]["nota"] = nota_redondeada
+                        instance.text = ""
+                        wp.calcular_indice()
+                        wp.guardar_datos(lista_materias)
+                    elif float(text) > 9 and float(text) <= 100:
+                        nota_interpolada = interpolar_nota(round(float(text)))
+                        materia.nota = nota_interpolada
+                        wp.ids.rv_indice.data[self.index]["nota"] = nota_interpolada
+                        instance.text = ""
+                        wp.calcular_indice()
+                        wp.guardar_datos(lista_materias)
+                    else:
+                        materia.nota = ""
+                        wp.ids.rv_indice.data[self.index]["nota"] = ""
+                        instance.text = ""
+                        wp.calcular_indice()
+                        wp.guardar_datos(lista_materias)
+                        MDSnackbar(
+                            MDSnackbarText(text='Nota inválida', halign="left"),
+                            MDSnackbarSupportingText(
+                                text="La nota debe estar entre 1-9 o 9-100"
+                            ),
+                            duration=5,
+                            pos_hint={"center_x": 0.5},
+                            y=dp(5),
+                            size_hint_x=0.8,
+                        ).open()
+                else:
+                    materia.nota = ""
+                    wp.ids.rv_indice.data[self.index]["nota"] = ""
+                    instance.text = ""
+                    wp.calcular_indice()
+                    wp.guardar_datos(lista_materias)
+                    MDSnackbar(
+                            MDSnackbarText(text='Nota inválida', halign="left"),
+                            MDSnackbarSupportingText(
+                                text="La nota debe ser un número"
+                            ),
+                            duration=5,
+                            pos_hint={"center_x": 0.5},
+                            y=dp(5),
+                            size_hint_x=0.8,
+                        ).open()
+
+            wp.ids.rv_indice.refresh_from_data()
+
+    def refresh_view_attrs(self, rv, index, data):
+        self._is_recycling = True # Bloqueo de guardado accidental
+        self.index = index
+        super(BoxConRippleIndice, self).refresh_view_attrs(rv, index, data)
+        
+        for child in self.children:
+            if isinstance(child, CampoTextoListaIndice):
+                child.focus = False
+                
+        self._is_recycling = False # Desbloqueamos el guardado
+
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            app = MDApp.get_running_app()
+            wp = app.widget_principal
+            wp.ver_evaluaciones(self, touch, wp.buscar_por_codigo(self.codigo_materia), True)
+            super().on_touch_down(touch)
+            return True
+        return super().on_touch_down(touch)
 
 class LabelListaIndice(MDLabel):
     pass
 
 class CampoTextoListaIndice(MDTextField):
-    pass
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos):
+            box = self.parent
+            target_codigo = box.codigo_materia if hasattr(box, 'codigo_materia') else None
+            rv_layout = box.parent if box else None
+            if rv_layout:
+                for fila in rv_layout.children:
+                    for widget in fila.children:
+                        if isinstance(widget, CampoTextoListaIndice) and widget != self and widget.focus:
+                            widget.focus = False 
 
+            super().on_touch_down(touch)
+
+            if target_codigo and rv_layout:
+                Clock.schedule_once(lambda dt: self._restaurar_foco(target_codigo, rv_layout), 0.05)
+                
+            return True 
+            
+        return super().on_touch_down(touch)
+
+    def on_text_validate(self):
+        box = self.parent
+        if not hasattr(box, 'index'):
+            return
+            
+        current_index = box.index
+        target_index = current_index + 1
+        
+        app = MDApp.get_running_app()
+        rv = app.widget_principal.ids.rv_indice
+        
+        pixels_to_scroll = 0
+        while target_index < len(rv.data):
+            vista = rv.data[target_index].get('viewclass')
+            if vista == 'SemestreIndice':
+                pixels_to_scroll += dp(45) 
+                target_index += 1
+            elif vista == 'BoxConRippleIndice':
+                pixels_to_scroll += dp(64) 
+                break
+            else:
+                target_index += 1
+                
+        if target_index >= len(rv.data):
+            self.focus = False
+            return
+            
+        target_codigo = rv.data[target_index].get('codigo_materia')
+        rv_layout = box.parent
+        
+        self.focus = False
+        
+        scrollable_height = rv.layout_manager.height - rv.height
+        if scrollable_height > 0:
+            delta_y = pixels_to_scroll / scrollable_height
+            rv.scroll_y = max(0.0, rv.scroll_y - delta_y) 
+            
+        Clock.schedule_once(lambda dt: self._restaurar_foco(target_codigo, rv_layout), 0.1)
+    def _restaurar_foco(self, target_codigo, rv_layout):
+        for fila in rv_layout.children:
+            if hasattr(fila, 'codigo_materia') and fila.codigo_materia == target_codigo:
+                for widget in fila.children:
+                    if isinstance(widget, CampoTextoListaIndice):
+                        widget.focus = True
+                        return
+        
 # Widgets de pensum Custom
-class BoxConRipplePensum(RectangularRippleBehavior, MDRelativeLayout):
+class BoxConRipplePensum(RecycleDataViewBehavior, RectangularRippleBehavior, MDRelativeLayout):
+    nombre_materia = StringProperty("")
+    codigo_materia = StringProperty("")
+    uc = StringProperty("")
+    color_fondo = ColorProperty()
+    active = BooleanProperty()
+    index = 0
+    texto_label = StringProperty("")
     ripple_duration_in_fast = 0.1
     ripple_duration_in_slow = 0
     ripple_duration_out = 0.1
     ripple_color = [0.5, 0.5, 0.5, 0.1]
+    
+    # Banderas de seguridad
+    _is_recycling = False
+    _bloqueo_global_toques = False 
+
+    def aprobar_materia(self, value, codigo, instance):
+        if self._is_recycling or BoxConRipplePensum._bloqueo_global_toques:
+            return
+
+        BoxConRipplePensum._bloqueo_global_toques = True
+        
+        Clock.schedule_once(lambda dt: self._procesar_aprobacion(value, codigo, instance))
+
+    def _procesar_aprobacion(self, value, codigo, instance):
+        try:
+            app = MDApp.get_running_app()
+            wp = app.widget_principal
+            materia = wp.buscar_por_codigo(codigo)
+            lista_materias = wp.get_materias()
+
+            indice_real = wp.mapa_indices_pensum.get(codigo)
+            if indice_real is None:
+                return
+
+            if value:
+                if materia.disponible:
+                    materia.aprobada = True
+                    wp.ids.rv_pensum.data[indice_real]["active"] = True
+                    wp.ids.rv_pensum.data[indice_real]["color_fondo"] = wp.VERDE
+                    
+                    wp.unidades_aprobadas_y_totales()
+                    wp.actualizar_pensum(materia.codigo) 
+                    wp.guardar_datos(lista_materias)
+                else:
+                    self._is_recycling = True
+                    instance.active = False 
+                    wp.ids.rv_pensum.data[indice_real]["active"] = False
+                    self._is_recycling = False
+            else:
+                materia.aprobada = False
+                color = wp.AMARILLO if materia.disponible else wp.color_fondo_claro
+                wp.ids.rv_pensum.data[indice_real]["active"] = False
+                wp.ids.rv_pensum.data[indice_real]["color_fondo"] = color
+                
+                wp.unidades_aprobadas_y_totales()
+                wp.desactualizar_pensum(materia.codigo)
+                wp.guardar_datos(lista_materias)
+        finally:
+            BoxConRipplePensum._bloqueo_global_toques = False
+
+    def refresh_view_attrs(self, rv, index, data):
+        self._is_recycling = True
+        self.index = index
+        self.active = data.get('active', False)
+        super(BoxConRipplePensum, self).refresh_view_attrs(rv, index, data)
+        for child in self.children:
+            if isinstance(child, MDCheckbox):
+                if child.active != self.active:
+                    child.active = self.active
+                break
+        self._is_recycling = False
+
+    def on_touch_down(self, touch):
+        if BoxConRipplePensum._bloqueo_global_toques:
+            return False
+            
+        if self.collide_point(*touch.pos) and touch.is_double_tap:
+            app = MDApp.get_running_app()
+            wp = app.widget_principal
+            materia = wp.buscar_por_codigo(self.codigo_materia)
+            wp.mostrar_informacion_materia(materia, False, materia.semestre)
+            super().on_touch_down(touch)
+            return True
+            
+        return super().on_touch_down(touch)
 
 class LabelListaPensum(MDLabel):
     pass
@@ -235,3 +479,40 @@ class Seccion(CommonElevationBehavior, MDRelativeLayout):
         self.dias = dias
         self.estado = estado
         self.aula = aula
+
+
+#RV custom indice y pensum
+class RVIndice(RecycleView):
+    def __init__(self, **kwargs):
+        super(RVIndice, self).__init__(**kwargs)
+        self.data = []
+
+class SemestreIndice(MDBoxLayout):
+    texto_semestre = StringProperty("")
+    color_fondo = ColorProperty()
+
+class RVPensum(RecycleView):
+    def __init__(self, **kwargs):
+        super(RVPensum, self).__init__(**kwargs)
+        self.data = []
+
+class SemestrePensum(MDBoxLayout):
+    texto_semestre = StringProperty("")
+    color_fondo = ColorProperty()
+
+    def on_touch_down(self, touch):
+        if self.collide_point(*touch.pos) and touch.is_double_tap:
+            app = MDApp.get_running_app()
+            wp = app.widget_principal
+            wp.mostrar_informacion_materia("materia", True, self.texto_semestre)
+            super().on_touch_down(touch)
+            return True
+        return super().on_touch_down(touch)
+
+
+class BoxConRippleElectivas(RectangularRippleBehavior, MDRelativeLayout):
+    ripple_duration_in_fast = 0.1
+    ripple_duration_in_slow = 0
+    ripple_duration_out = 0.1
+    ripple_color = [0.5, 0.5, 0.5, 0.1]
+    _is_recycling = False

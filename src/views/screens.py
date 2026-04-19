@@ -25,7 +25,6 @@ class GenerarHorario(Screen):
     max_horarios = ObjectProperty(0)
 
 class Configuracion(Screen):
-    tiempo_espera = ObjectProperty("Optimizada")
     tema = ObjectProperty("")
     primer_acceso = True
 

@@ -12,6 +12,7 @@ import random
 import copy
 import certifi
 from itertools import product
+import threading
 
 from kivy.logger import Logger
 from kivy.config import Config
@@ -61,7 +62,7 @@ from kivy.resources import resource_add_path
 #Importaciones de modulos
 from src.utils import (get_height_of_bar, set_status_bar_color, get_android_api,
     set_status_bar_icons_dark, set_navigation_bar_black, VERSION,
-    URL_BASE_DATOS_HORARIO, URL_VERSION_HORARIO, interpolar_nota)
+    URL_BASE_DATOS_HORARIO, URL_VERSION_HORARIO, interpolar_nota, MAX_ELECTIVAS)
 from src.utils.secrets import REWARDED, INTERSTITIAL
 from src.views.screens import (Acerca, DescargoResponsabilidad, Colaboradores,
     Licencias, GenerarHorario, Configuracion, Login, Horario, Evaluaciones,
@@ -70,7 +71,7 @@ from src.views.custom_widgets import (BoxLayoutElevated, CustomMDScrollView, Box
     LabelListaIndice, CampoTextoListaIndice, BoxConRipplePensum, LabelListaPensum,
     CheckBoxPensum, CampoTextoHorario, SelectableRecycleBoxLayout, SelectableLabel, RV,
     SelectableLabelHorario, RVHorario, BoxConRippleInicio, ExpansionPanelItem, TrailingPressedIconButton,
-    Seccion)
+    Seccion, RVIndice, SemestreIndice, BoxConRippleElectivas)
 from src.models import Materia, Evaluacion
 Config.set('kivy', 'log_level', 'info')
 Config.set("graphics", "maxfps", "120")
@@ -150,10 +151,6 @@ class Widget_Principal(ScreenManager):
     notas_active = BooleanProperty(False)
     horario_active = BooleanProperty(False)
     # Verificar si ya se han creado los widgets
-    activado = True
-    cargar_indice = True
-    activado_pensum = True
-    cargar_pensum = True
     activado_bloques_horario = True
     # Retraso cambio de pantalla
     navegacion_desactivada = BooleanProperty(False)
@@ -165,14 +162,6 @@ class Widget_Principal(ScreenManager):
     indice_academico = ObjectProperty()
     icono_especialidad = StringProperty("arrow-right-bold")
     icono_mencion = StringProperty("arrow-right-bold")
-    # Para saltar al siguiente campos al dar enter
-    lista_campos = []
-    # Widgets en notas
-    widgets_lista_notas = []
-    numero_widget_notas = 0
-    # Widgets en pensum
-    diccionario_widgets_pensum = {}
-    diccionario_checkboxs_pensum = {}
     # Para mostrar información materias
     ejecucion = True
     # Mostrar en widgets
@@ -190,12 +179,6 @@ class Widget_Principal(ScreenManager):
     old_lista_materias_para_inscribir = []
     # Verificacion de materias de basico aprobadas
     materias_basico = False
-    # Diccionario para seleccionar electivas
-    contador_electivas = 0
-    diccionario_checkboxs_electivas = {}
-    # Velocidad de carga de Widgets
-    tiempo_espera = None
-    texto_tiempo_espera = StringProperty("Optimizada")
     # Materias para inscribir en inicio
     lista_materias_inicio_inscribir = []
     lista_materias_inicio_inscritas = []
@@ -239,6 +222,12 @@ class Widget_Principal(ScreenManager):
     panel_activado = True
     version_local_horario = 0 
     base_datos_horario = None
+    #Electivas
+    inhabilitar_checkbox = False
+    #Horario
+    horario = []
+    secciones = []
+    profesores = []
 
     # Arranque de la app
     def __init__(self, **kwargs):
@@ -325,14 +314,6 @@ class Widget_Principal(ScreenManager):
             caller=self.ids.BotonAppBar, items=menu_items_appbar
         )
 
-        menu_items_velocidad_carga = [
-            {"text": "Rápida", "on_release": lambda x=0.1: self.velocidad_carga(x)},
-            {"text": "Optimizada", "on_release": lambda x=0.2: self.velocidad_carga(x)},
-        ]
-        self.menu_velocidad_carga = MDDropdownMenu(
-            caller=None, items=menu_items_velocidad_carga, position="bottom"
-        )
-
         Window.bind(on_keyboard=self.back_press)
 
     def get_materias(self, force_reload=False):
@@ -391,7 +372,10 @@ class Widget_Principal(ScreenManager):
                         materia["inscrita"],
                         [Evaluacion(e["identificador"], e["nota"], e["ponderacion"], e["extra"]) for e in materia["evaluaciones"]],
                         materia["porcentual"],
-                        materia["pre3"])
+                        materia["pre3"],
+                        materia["electiva"],
+                        materia["costo"],
+                        materia["pre_electiva"])
             Logger.info("Finalizó el cargado de electivas desde archivo json")
             return Materia.electivas[:]
 
@@ -401,9 +385,10 @@ class Widget_Principal(ScreenManager):
     def back_press(self, window, key, *largs):
         if key == 27:
             if self.current == "GenerarHorario":
-                self.transition = SlideTransition(direction="left")
-                self.current = "Horario"
-                self.transition = SlideTransition(direction="right")
+                if not self.pantalla_generar_horario.ids["close_button"].disabled:
+                    self.transition = SlideTransition(direction="left")
+                    self.current = "Horario"
+                    self.transition = SlideTransition(direction="right")
             elif (
                 self.current == "Descargo De Responsabilidad"
                 or self.current == "Colaboradores"
@@ -423,8 +408,8 @@ class Widget_Principal(ScreenManager):
                 self.current = "Inicio"
                 self.transition = SlideTransition(direction="left")
                 Clock.schedule_once(lambda dt: self.mostrar_materias_inicio(), 0.65)
-                self.cargar_widget_notas()
-                self.cargar_widget_pensum()
+                self.cargar_datos_indice()
+                self.cargar_datos_pensum()
             return True
         else:
             return False
@@ -437,7 +422,6 @@ class Widget_Principal(ScreenManager):
             else:
                 self.add_widget(Configuracion())
                 pantalla_configuracion = self.get_screen("Configuracion")
-                pantalla_configuracion.tiempo_espera = self.texto_tiempo_espera
                 pantalla_configuracion.tema = self.tema
 
         self.current = texto
@@ -537,65 +521,6 @@ class Widget_Principal(ScreenManager):
                 pantalla.ids.chip_minima.active = minima
                 pantalla.ids.chip_sustitutiva.active = sustitutiva
 
-        if not self.cargar_indice:
-            for widget in self.ids["menu_notas_materias"].children:
-                if widget.id != "":
-                    widget.md_bg_color = self.color_fondo_claro
-                else:
-                    widget.md_bg_color = self.color_fondo_mas_claro
-        else:
-            for widget in self.widgets_lista_notas:
-                if widget.id != "":
-                    widget.md_bg_color = self.color_fondo_claro
-                else:
-                    widget.md_bg_color = self.color_fondo_mas_claro
-
-        if not self.cargar_pensum:
-            for widget in self.ids["menu_pensum_materias"].children:
-                if widget.id == "":
-                    widget.md_bg_color = self.color_fondo_mas_claro
-                else:
-                    if (
-                        widget.md_bg_color != self.VERDE
-                        and widget.md_bg_color != self.AMARILLO
-                    ):
-                        widget.md_bg_color = self.color_fondo_claro
-                for hijo in widget.children:
-                    if hijo.id == "":
-                        if self.tema == "Claro":
-                            hijo.text = hijo.text.replace(
-                                "[color=#B2B2B2]", "[color=#333333]"
-                            ).replace("[/color]", "[/color]")
-                        else:
-                            hijo.text = hijo.text.replace(
-                                "[color=#333333]", "[color=#B2B2B2]"
-                            ).replace("[/color]", "[/color]")
-
-                        hijo.outline_width = self.borde_letra_fino
-        else:
-            for widget in self.diccionario_widgets_pensum.keys():
-                if widget.id == "":
-                    widget.md_bg_color = self.color_fondo_mas_claro
-                else:
-                    if (
-                        widget.md_bg_color != self.VERDE
-                        and widget.md_bg_color != self.AMARILLO
-                    ):
-                        widget.md_bg_color = self.color_fondo_claro
-                for hijo in widget.children:
-                    if hijo.id == "":
-                        if self.tema == "Claro":
-                            hijo.text = hijo.text.replace(
-                                "[color=#B2B2B2]", "[color=#333333]"
-                            ).replace("[/color]", "[/color]")
-                        else:
-                            hijo.text = hijo.text.replace(
-                                "[color=#333333]", "[color=#B2B2B2]"
-                            ).replace("[/color]", "[/color]")
-
-                        hijo.outline_width = self.borde_letra_fino
-
-
         if self.activado_bloques_horario == False:
             for box in self.pantalla_generar_horario.ids["GridLayoutHorario"].children:
                 box.md_bg_color = self.color_fondo_claro
@@ -619,23 +544,6 @@ class Widget_Principal(ScreenManager):
             self.AZUL_MAS_CLARO = [0.808, 0.235, 0.435, 1]
             self.VERDE = [0.576, 0.106, 0.749, 1]
 
-            if not self.cargar_pensum:
-                for widget in self.ids["menu_pensum_materias"].children:
-                    if widget.id != "":
-                        if (
-                            widget.md_bg_color != self.color_fondo_claro
-                            and widget.md_bg_color != self.AMARILLO
-                        ):
-                            widget.md_bg_color = self.VERDE
-            else:
-                for widget in self.diccionario_widgets_pensum.keys():
-                    if widget.id != "":
-                        if (
-                            widget.md_bg_color != self.color_fondo_claro
-                            and widget.md_bg_color != self.AMARILLO
-                        ):
-                            widget.md_bg_color = self.VERDE
-
     def cargar_datos_usuario(self):
         ruta_json = join(RUTA_DATOS, "datos.json")
         ruta_txt = join(RUTA_ARCHIVOS, "datos.txt")
@@ -646,7 +554,6 @@ class Widget_Principal(ScreenManager):
                 self.texto_nombre = datos_usuario["nombre"]
                 self.texto_especialidad = datos_usuario["especialidad"]
                 self.texto_mencion = datos_usuario["mencion"]
-                self.tiempo_espera = datos_usuario["tiempo_espera"]
                 self.guia_inicio = datos_usuario["guia_inicio"]
                 self.guia_indice = datos_usuario["guia_indice"]
                 self.guia_pensum = datos_usuario["guia_pensum"]
@@ -660,8 +567,12 @@ class Widget_Principal(ScreenManager):
                 self.texto_nombre = datos.readline().replace("\n", "")
                 self.texto_especialidad = datos.readline().replace("\n", "")
                 self.texto_mencion = datos.readline().replace("\n", "")
-                self.tiempo_espera = float(datos.readline().replace("\n", ""))
-                self.guia_inicio = eval(datos.readline().replace("\n", ""))
+                tiempo_espera = datos.readline().replace("\n", "")
+                migrar = False
+                if not es_numero(tiempo_espera):
+                    migrar = True
+
+                self.guia_inicio = (eval(tiempo_espera) if migrar else eval(datos.readline().replace("\n", "")))
                 self.guia_indice = eval(datos.readline().replace("\n", ""))
                 self.guia_pensum = eval(datos.readline().replace("\n", ""))
                 self.guia_horario = eval(datos.readline().replace("\n", ""))
@@ -683,18 +594,15 @@ class Widget_Principal(ScreenManager):
                 self.guia_horario = True
                 Clock.schedule_once(self.mostrar_guia_inicio, 2.5)
 
-            if self.tiempo_espera == 0.1:
-                self.texto_tiempo_espera = "Rápida"
-
             Logger.info(
-                "Cargando funciones get_materias, calcular_indice, unidades aprobadas y totales, actualizar colores, cargar_widget_notas y pensum."
+                "Cargando funciones get_materias, calcular_indice, unidades aprobadas y totales, actualizar colores, cargar_datos_indice y pensum."
             )
             self.get_materias(force_reload=True)
             self.calcular_indice()
             self.unidades_aprobadas_y_totales()
             self.actualizar_colores()
-            self.cargar_widget_notas()
-            self.cargar_widget_pensum()
+            self.cargar_datos_indice()
+            self.cargar_datos_pensum()
             if migracion:
                 Logger.info("Se detectó migración de datos, actualizando pensum")
                 self.actualizar_pensum("")
@@ -702,7 +610,6 @@ class Widget_Principal(ScreenManager):
 
         else:
             Logger.info("No hay datos de usuario, redirigiendo a pantalla de login")
-            self.tiempo_espera = 0.2
             self.transition = NoTransition()
             self.requiere_login = True
             self.actualizar_colores()
@@ -768,8 +675,8 @@ class Widget_Principal(ScreenManager):
             self.reiniciar_widgets()
             if self.has_screen("Horario"):
                 self.cargar_datos_horario_usuario()
-            self.cargar_widget_notas()
-            self.cargar_widget_pensum()
+            self.cargar_datos_indice()
+            self.cargar_datos_pensum()
             self.calcular_indice()
             self.unidades_aprobadas_y_totales()
             self.pensum_active = False
@@ -807,7 +714,6 @@ class Widget_Principal(ScreenManager):
             self.pensum_active = False
             self.inicio_active = False
             self.horario_active = False
-            self.agregar_widgets_notas()
 
         elif item_text == "Pensum":
             if self.current == "Índice" or self.current == "Inicio":
@@ -819,7 +725,6 @@ class Widget_Principal(ScreenManager):
             self.pensum_active = True
             self.inicio_active = False
             self.horario_active = False
-            self.agregar_widgets_pensum()
 
         elif item_text == "Inicio":
             self.notas_active = False
@@ -831,12 +736,13 @@ class Widget_Principal(ScreenManager):
                 Clock.schedule_once(lambda dt: self.mostrar_materias_inicio(), 0.5)
             self.current = "Inicio"
             self.transition = SlideTransition(direction="left")
-            self.cargar_widget_notas()
-            self.cargar_widget_pensum()
+            self.cargar_datos_indice()
+            self.cargar_datos_pensum()
 
         elif item_text == "Horario":
             if not self.has_screen("Horario"):
                 self.add_widget(Horario())
+                self.firts_update_horario = True
                 self.pantalla_horario = self.get_screen("Horario")
                 Clock.schedule_once(self.cargar_datos_horario, 0.65)
                 Clock.schedule_once(self.cargar_datos_horario_usuario, 1.5)
@@ -846,10 +752,13 @@ class Widget_Principal(ScreenManager):
             self.horario_active = True
             self.transition = SlideTransition(direction="left")
             self.current = "Horario"
+            if self.firts_update_horario:
+                self.firts_update_horario = False
+                Clock.schedule_once(self.iniciar_actualizacion_horario, 1.5)
             if self.guia_horario:
                 Clock.schedule_once(self.mostrar_guia_horario, 1)
             self.transition = SlideTransition(direction="right")
-            self.unidades_aprobadas_y_totales()
+
         Clock.schedule_once(self.activar_navegacion, 1)
         # Mostrar Anuncio instersticial
         app = MDApp.get_running_app()
@@ -863,56 +772,61 @@ class Widget_Principal(ScreenManager):
 
     # Guardar Datos
     def guardar_datos(self, lista_materias_a_guardar):
-        especialidad_to_archivo = {"Ing. Industrial": "industrial",
-        "Ing. Eléctrica": "electrica",
-        "Ing. Mecánica": "mecanica",
-        "Ing. Química": "quimica",
-        "Ing. Metalúrgica": "metalurgica",
-        "Comunicaciones":"electronica_comunicaciones",
-        "Computación": "electronica_computacion",
-        "Control": "electronica_control"}
+        def thread(self, lista_materias_a_guardar):
+            especialidad_to_archivo = {"Ing. Industrial": "industrial",
+            "Ing. Eléctrica": "electrica",
+            "Ing. Mecánica": "mecanica",
+            "Ing. Química": "quimica",
+            "Ing. Metalúrgica": "metalurgica",
+            "Comunicaciones":"electronica_comunicaciones",
+            "Computación": "electronica_computacion",
+            "Control": "electronica_control"}
 
-        nombre_archivo = ""
-        if self.texto_mencion in especialidad_to_archivo:
-            nombre_archivo = especialidad_to_archivo[self.texto_mencion]
-        else:
-            nombre_archivo = especialidad_to_archivo[self.texto_especialidad]
-
-        path_archivo_materias = join(RUTA_DATOS, f"materias_{nombre_archivo}.json")
-
-        try:
-            if lista_materias_a_guardar:
-                Logger.debug("Guardandos datos de materias")
-                lista_diccionarios = []
-                for materia in lista_materias_a_guardar:
-                    lista_diccionarios.append(materia.to_dict())
-
-                with open(path_archivo_materias, "w", encoding="utf-8") as archivo_materias:
-                    json.dump(lista_diccionarios, archivo_materias, indent = 4)
-                    Logger.debug("Datos de materias guardados correctamente")
+            nombre_archivo = ""
+            if self.texto_mencion in especialidad_to_archivo:
+                nombre_archivo = especialidad_to_archivo[self.texto_mencion]
             else:
-                Logger.warning(
-                    "El archivo de materias a guardar no es válido o está vacio, no se guardarán los datos"
-                )
+                nombre_archivo = especialidad_to_archivo[self.texto_especialidad]
 
-        except IOError as e:
-            Logger.error(f"Error de disco al guardar datos: {e}")
-        except Exception as e:
-            Logger.error(f"Error al guardar datos de materias {e}")
+            path_archivo_materias = join(RUTA_DATOS, f"materias_{nombre_archivo}.json")
+
+            try:
+                if lista_materias_a_guardar:
+                    Logger.debug("Guardandos datos de materias")
+                    lista_diccionarios = []
+                    for materia in lista_materias_a_guardar:
+                        lista_diccionarios.append(materia.to_dict())
+
+                    with open(path_archivo_materias, "w", encoding="utf-8") as archivo_materias:
+                        json.dump(lista_diccionarios, archivo_materias, indent = 4)
+                        Logger.debug("Datos de materias guardados correctamente")
+                else:
+                    Logger.warning(
+                        "El archivo de materias a guardar no es válido o está vacio, no se guardarán los datos"
+                    )
+
+            except IOError as e:
+                Logger.error(f"Error de disco al guardar datos: {e}")
+            except Exception as e:
+                Logger.error(f"Error al guardar datos de materias {e}")
+
+        threading.Thread(target=thread, args=(self,lista_materias_a_guardar)).start()
                 
     def guardar_datos_usuario(self):
-        with open(join(RUTA_DATOS, "datos.json"), "w", encoding="utf-8") as datos:
-            datos_usuario = {"nombre": self.texto_nombre,
-            "especialidad": self.texto_especialidad,
-            "mencion": self.texto_mencion,
-            "tiempo_espera": self.tiempo_espera,
-            "guia_inicio": self.guia_inicio,
-            "guia_indice": self.guia_indice,
-            "guia_pensum": self.guia_pensum,
-            "guia_horario": self.guia_horario,
-            "version": VERSION,
-            "tema": self.tema_ingles}
-            json.dump(datos_usuario, datos, indent = 4)
+        def thread(self):
+            with open(join(RUTA_DATOS, "datos.json"), "w", encoding="utf-8") as datos:
+                datos_usuario = {"nombre": self.texto_nombre,
+                "especialidad": self.texto_especialidad,
+                "mencion": self.texto_mencion,
+                "guia_inicio": self.guia_inicio,
+                "guia_indice": self.guia_indice,
+                "guia_pensum": self.guia_pensum,
+                "guia_horario": self.guia_horario,
+                "version": VERSION,
+                "tema": self.tema_ingles}
+                json.dump(datos_usuario, datos, indent = 4)
+
+        threading.Thread(target=thread, args=(self,)).start()        
 
     # Pantalla inicio
     def mostrar_materias_inicio(self, inscritas=False, cambio_tema=False, *args):
@@ -998,11 +912,13 @@ class Widget_Principal(ScreenManager):
                     md_bg_color=self.NARANJA_CLARO,
                     radius=dp(7),
                 )
+                
                 box_layout_inicio.bind(
-                    on_touch_down=lambda instance, touch, m=materia_obj, es_sem=False: self.doble_tap(
-                        instance, touch, m, es_sem
+                    on_touch_down=lambda instance, touch, m=materia_obj, es_sem=False: self.mostrar_informacion_materia(
+                        m, es_sem, m.semestre, touch, instance
                     )
                 )
+                
                 lista_actual_widgets.append(box_layout_inicio)
                 # Box derecha
                 box_layout_inicio = MDBoxLayout(
@@ -1260,6 +1176,7 @@ class Widget_Principal(ScreenManager):
             dialogo_informacion.add_widget(boton)
             dialogo_informacion.open()
             self.guia_inicio = False
+            self.guardar_datos_usuario()
 
     def leer_mas(self, dialogo):
         dialogo.dismiss()
@@ -1409,105 +1326,30 @@ class Widget_Principal(ScreenManager):
         dialogo_informacion.open()
 
     # Pantalla de Indice
-    def cargar_widget_notas(self, *args):
-        def crear_widgets(self):
-            Widget_Principal.activado = False
-            self.cargar_indice = True
+    def cargar_datos_indice(self):
+        def cargar_datos(self):
             lista_materias = self.get_materias()
-            iteraciones = len(lista_materias)
-            cargador_materias = None
-            iteracion = 0
+            datos_rv = []
             semestres = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
-
-            async def cargar_materia(*args):
-                nonlocal iteracion
-                await ak.sleep(0)
-                try:
-                    materia = lista_materias[iteracion]
-                except IndexError as e:
-                    cargador_materias.cancel()
-                    return True
-
+                
+            for materia in lista_materias:
                 if materia.semestre == semestres[0]:
                     semestres.remove(materia.semestre)
-                    widget_semestre = MDBoxLayout(
-                        MDLabel(
-                            text=f"SEMESTRE {materia.semestre}",
-                            bold=True,
-                            halign="center",
-                        ),
-                        theme_bg_color="Custom",
-                        md_bg_color=self.color_fondo_mas_claro,
-                        size_hint_x=1,
-                        size_hint_y=None,
-                        height=dp(45),
-                    )
-                    self.widgets_lista_notas.append(widget_semestre)
+                    datos_rv.append({"viewclass": "SemestreIndice",
+                                "texto_semestre": materia.semestre,
+                                "color_fondo": self.color_fondo_mas_claro})
 
-                campo_texto = CampoTextoListaIndice(
-                    id=f"{materia.codigo}WCT",
-                    text=str(materia.nota).replace("''", ""),
-                    max_height="35dp",
-                )
-                objeto_lista = BoxConRippleIndice(
-                    LabelListaIndice(
-                        text=f"[b]{materia.nombre}[/b]\n[size=14sp]{materia.uc} U.C[/size]"
-                    ),
-                    campo_texto,
-                    id=f"{materia.codigo}WN",
-                )
-                objeto_lista.bind(
-                    on_touch_down=lambda instance, touch, m=materia: self.ver_evaluaciones(
-                        instance, touch, m, True
-                    )
-                )
-                campo_texto.bind(
-                    focus=lambda instance, value, codigo=materia.codigo: self.on_focus(
-                        instance, value, codigo
-                    )
-                )
-                self.lista_campos.append(campo_texto)
-                self.widgets_lista_notas.append(objeto_lista)
-                iteracion += 1
+                datos_rv.append({"viewclass": "BoxConRippleIndice",
+                    "codigo_materia": materia.codigo,
+                    "nombre_materia": materia.nombre,
+                    "uc": str(materia.uc),
+                    "nota": materia.nota,
+                    "color_fondo": self.color_fondo_claro
+                    })
 
-                if iteracion >= iteraciones:
-                    cargador_materias.cancel()
+            self.ids.rv_indice.data = datos_rv
 
-            def iniciar_carga(*args):
-                ak.start(cargar_materia())
-
-            cargador_materias = Clock.schedule_interval(iniciar_carga, 0.1)
-
-        if Widget_Principal.activado:
-            crear_widgets(self)
-
-    def agregar_widgets_notas(self, *args):
-        async def proceso(self):
-            self.cargar_indice = False
-            cargador_materias = None
-            numero_widget = 0
-            iteraciones = self.materias_totales + 10
-            await ak.sleep(0)
-
-            async def cargar_materia(*args):
-                nonlocal numero_widget
-                await ak.sleep(0)
-                self.ids["menu_notas_materias"].add_widget(
-                    self.widgets_lista_notas[numero_widget]
-                )
-                numero_widget += 1
-                if numero_widget == iteraciones:
-                    cargador_materias.cancel()
-
-            def iniciar_carga(*args):
-                ak.start(cargar_materia(*args))
-
-            cargador_materias = Clock.schedule_interval(
-                iniciar_carga, self.tiempo_espera
-            )
-
-        if Widget_Principal.activado == False and self.cargar_indice:
-            ak.start(proceso(self))
+        threading.Thread(target=cargar_datos, args=(self,)).start()
 
     def es_numero(self, cadena):
         try:
@@ -1536,42 +1378,6 @@ class Widget_Principal(ScreenManager):
         except ZeroDivisionError:
             self.indice_academico = "¡Sin notas!"
             self.mencion_honorifica = "-"
-
-    @auto_save_materias
-    def on_focus(self, instance, value, codigo):
-        lista_materias = self.get_materias()
-        materia = self.buscar_por_codigo(codigo)
-        if not value:
-            if instance.text == "":
-                materia.nota = ""
-                self.calcular_indice()
-            else:
-                if self.es_numero(instance.text):
-                    if float(instance.text) >= 1 and float(instance.text) <= 9:
-                        nota_redondeada = round(float(instance.text), 1)
-                        materia.nota = nota_redondeada
-                        instance.text = str(nota_redondeada)
-                        instance.cursor = (0, 0)
-                        self.calcular_indice()
-                    elif float(instance.text) > 9 and float(instance.text) <= 100:
-                        nota_interpolada = interpolar_nota(round(float(instance.text)))
-                        materia.nota = nota_interpolada
-                        instance.text = str(nota_interpolada)
-                        instance.cursor = (0, 0)
-                        self.calcular_indice()
-                    else:
-                        instance.error = True
-                else:
-                    instance.error = True
-
-    def siguiente_campo_notas(self, instance):
-        posicion_actual = self.lista_campos.index(instance)
-        siguiente_posicion = (posicion_actual + 1) % len(self.lista_campos)
-        self.lista_campos[siguiente_posicion].focus = True
-        if posicion_actual + 5 > len(self.lista_campos):
-            self.ids["scroll_notas"].scroll_to(self.lista_campos[siguiente_posicion])
-        else:
-            self.ids["scroll_notas"].scroll_to(self.lista_campos[posicion_actual + 4])
 
     def mostrar_guia_indice(self, *args):
         if self.guia_indice:
@@ -1615,6 +1421,7 @@ class Widget_Principal(ScreenManager):
             dialogo_informacion.add_widget(boton)
             dialogo_informacion.open()
             self.guia_indice = False
+            self.guardar_datos_usuario()
 
     def advertencia_borrar_notas(self):
         dialogo_advertencia = MDDialog(
@@ -1670,9 +1477,8 @@ class Widget_Principal(ScreenManager):
         lista_materias = self.get_materias()
         for materia in lista_materias:
             materia.nota = "''"
-        for campo in self.lista_campos:
-            campo.text = ""
         self.calcular_indice()
+        self.cargar_datos_indice()
 
     def ver_evaluaciones(self, instance, touch, materia, from_indice):
         def ir_a_pantalla(self, materia):
@@ -2257,12 +2063,12 @@ class Widget_Principal(ScreenManager):
         materia = pantalla_evaluaciones.materia
         nota_pasar = (
             0
-            if pantalla_evaluaciones.nota_pasar == "No"
+            if pantalla_evaluaciones.nota_pasar == "-"
             else pantalla_evaluaciones.nota_pasar
         )
         nota_sustituir = (
             0
-            if pantalla_evaluaciones.nota_sustituir == "No"
+            if pantalla_evaluaciones.nota_sustituir == "-"
             else pantalla_evaluaciones.nota_sustituir
         )
         gridlayout = pantalla_evaluaciones.ids.GridLayoutEvaluaciones
@@ -2690,138 +2496,54 @@ class Widget_Principal(ScreenManager):
         dialogo_informacion.open()
 
     # Pantalla de Pensum
-    def cargar_widget_pensum(self, *args):
-        def cargar_widgets(self):
-            self.ids["indicador_progreso_carga"].active = True
-            Widget_Principal.activado_pensum = False
+    def cargar_datos_pensum(self):
+        def cargar_datos(self):
             lista_materias = self.get_materias()
-            iteraciones = len(lista_materias)
-            cargador_materias = None
-            iteracion = 0
+            datos_rv = []
             semestres = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
-
-            async def cargar_materia(*args):
-                nonlocal iteracion
-                await ak.sleep(0)
-                try:
-                    materia = lista_materias[iteracion]
-                except IndexError as e:
-                    cargador_materias.cancel()
-                    return True
-
-                iteracion += 1
+            color_tema = '#B2B2B2' if self.tema == 'Oscuro' else '#333333'
+            self.mapa_indices_pensum = {}
+            i = 0
+                
+            for materia in lista_materias:
                 if materia.semestre == semestres[0]:
                     semestres.remove(materia.semestre)
-                    widget_semestre = MDBoxLayout(
-                        MDLabel(
-                            text=f"SEMESTRE {materia.semestre}",
-                            bold=True,
-                            halign="center",
-                        ),
-                        theme_bg_color="Custom",
-                        md_bg_color=self.color_fondo_mas_claro,
-                        size_hint_x=1,
-                        size_hint_y=None,
-                        height=dp(45),
-                    )
-                    widget_semestre.bind(
-                        on_touch_down=lambda instance, touch, materia=materia, es_semestre=True, semestre=materia.semestre: self.doble_tap(
-                            instance, touch, materia, es_semestre, semestre
-                        )
-                    )
-                    self.diccionario_widgets_pensum[widget_semestre] = materia.semestre
+                    datos_rv.append({"viewclass": "SemestrePensum",
+                                "texto_semestre": materia.semestre,
+                                "color_fondo": self.color_fondo_mas_claro})
+                    i+=1
 
-                check_box = CheckBoxPensum(id=materia.codigo)
-                objeto_lista = BoxConRipplePensum(
-                    LabelListaPensum(
-                        text=f"[b]{materia.nombre}\n[size=14sp][color={('#B2B2B2' if self.tema=='Oscuro' else '#333333')}]Código: {materia.codigo}[/b]\n{materia.uc} U.C[/color][/size]"
-                    ),
-                    check_box,
-                    id=f"{materia.codigo}WP",
-                    theme_bg_color="Custom",
-                )
-
+                color_fondo = None
                 if materia.aprobada:
-                    check_box.active = True
-                    objeto_lista.md_bg_color = self.VERDE
+                    color_fondo = self.VERDE
                 elif materia.disponible:
-                    objeto_lista.md_bg_color = self.AMARILLO
+                    color_fondo = self.AMARILLO
                 else:
-                    objeto_lista.md_bg_color = self.color_fondo_claro
+                    color_fondo = self.color_fondo_claro
 
-                check_box.bind(
-                    active=lambda checkbox, value, codigo=materia.codigo, objeto_lista=objeto_lista: self.aprobar_materia(
-                        checkbox, value, codigo, objeto_lista
-                    )
-                )
+                texto_materia = f"[b]{materia.nombre}\n[size=14sp][color={color_tema}]Código: {materia.codigo}[/b]\n{materia.uc} U.C[/color][/size]"
 
-                self.diccionario_checkboxs_pensum[check_box] = materia.codigo
-                objeto_lista.bind(
-                    on_touch_down=lambda instance, touch, materia=materia, es_semestre=False, semestre="": self.doble_tap(
-                        instance, touch, materia, es_semestre, semestre
-                    )
-                )
-                self.diccionario_widgets_pensum[objeto_lista] = materia.codigo
+                datos_rv.append({"viewclass": "BoxConRipplePensum",
+                    "codigo_materia": materia.codigo,
+                    "nombre_materia": materia.nombre,
+                    "uc": str(materia.uc),
+                    "active": materia.aprobada,
+                    "color_fondo": color_fondo,
+                    "texto_label": texto_materia,
+                    })
 
-            def iniciar_carga(*args):
-                nonlocal iteracion
-                if iteracion >= iteraciones:
-                    cargador_materias.cancel()
-                    self.ids["indicador_progreso_carga"].active = False
-                else:
-                    ak.start(cargar_materia(*args))
+                self.mapa_indices_pensum[materia.codigo] = i
+                i+=1
 
-            cargador_materias = Clock.schedule_interval(iniciar_carga, 0.1)
+            self.ids.rv_pensum.data = datos_rv
 
-        if Widget_Principal.activado_pensum:
-            cargar_widgets(self)
+        threading.Thread(target=cargar_datos, args=(self,)).start()
+    
+    def mostrar_informacion_materia(self, materia_obj, es_semestre, semestre_str, touch = None, instance = None):
+        if touch:
+            if not touch.is_double_tap or not instance.collide_point(*touch.pos):
+                return
 
-    def agregar_widgets_pensum(self):
-        async def proceso(self):
-            self.cargar_pensum = False
-            cargador_materias = None
-            numero_widget = 0
-            iteraciones = self.materias_totales + 10
-            lista_widgets_pensum = list(self.diccionario_widgets_pensum.keys())
-            menu_pensum_materias = self.ids["menu_pensum_materias"]
-
-            async def cargar_materia(lista, *args):
-                nonlocal numero_widget
-                await ak.sleep(0)
-                try:
-                    menu_pensum_materias.add_widget(lista[numero_widget])
-                    numero_widget += 1
-                except IndexError as e:
-                    lista = list(self.diccionario_widgets_pensum.keys())
-                    menu_pensum_materias.add_widget(lista[numero_widget])
-                    numero_widget += 1
-
-                if numero_widget >= iteraciones:
-                    cargador_materias.cancel()
-
-            def iniciar_carga(*args):
-                ak.start(cargar_materia(lista_widgets_pensum, *args))
-
-            cargador_materias = Clock.schedule_interval(
-                iniciar_carga, self.tiempo_espera
-            )
-
-        if Widget_Principal.activado_pensum == False and self.cargar_pensum:
-            ak.start(proceso(self))
-
-    def doble_tap(self, instance, touch, materia, es_semestre, semestre=""):
-        if touch.is_double_tap:
-            if instance.collide_point(*touch.pos):
-                if Widget_Principal.ejecucion:
-                    Clock.schedule_once(
-                        lambda dt, materia=materia, es_semestre=es_semestre, semestre=semestre: self.mostrar_informacion_materia(
-                            materia, es_semestre, semestre
-                        ),
-                        0.5,
-                    )
-                Widget_Principal.ejecucion = False
-
-    def mostrar_informacion_materia(self, materia_obj, es_semestre, semestre_str):
         if not es_semestre:
             pre1_nombre = "Ninguno"
             pre2_nombre = ""
@@ -2974,7 +2696,7 @@ class Widget_Principal(ScreenManager):
         dialogo_informacion.add_widget(container_botones)
         dialogo_informacion.open()
 
-        Widget_Principal.ejecucion = True  # Permitir nueva ejecución
+        Widget_Principal.ejecucion = True
 
     def buscar_posreq_str(self, materia_recibida):
         posreq_lista = []
@@ -3008,6 +2730,8 @@ class Widget_Principal(ScreenManager):
 
     def actualizar_pensum(self, codigo):
         lista_materias = self.get_materias()
+        if codigo not in self.materias_dict.keys():
+            return
         r = 0
         while r <= 1:
             for materia in lista_materias:
@@ -3019,9 +2743,10 @@ class Widget_Principal(ScreenManager):
                         and materia.coreq == "''"
                     ):
                         materia.disponible = True
-                        for clave, valor in self.diccionario_widgets_pensum.items():
-                            if valor == materia.codigo:
-                                clave.md_bg_color = self.AMARILLO
+                        indice = self.mapa_indices_pensum[materia.codigo]
+                        item_grafico = self.ids.rv_pensum.data[indice].copy()
+                        item_grafico["color_fondo"] = self.AMARILLO
+                        self.ids.rv_pensum.data[indice] = item_grafico
 
                     # Materia con dos prerequisitos y sin corequisito
                     elif (materia.pre1 == codigo or materia.pre2 == codigo) and (
@@ -3029,22 +2754,23 @@ class Widget_Principal(ScreenManager):
                         and materia.coreq == "''"
                         and materia.pre3 == "''"
                     ):
-                        materia.disponible = True
+                        
                         pre1materia = self.buscar_por_codigo(materia.pre1)
                         pre2materia = self.buscar_por_codigo(materia.pre2)
 
                         if not pre2materia.aprobada or not pre1materia.aprobada:
                             materia.disponible = False
                             disponible = False
+                        else:
+                            materia.disponible = True
+                            indice = self.mapa_indices_pensum[materia.codigo]
+                            item_grafico = self.ids.rv_pensum.data[indice].copy()
+                            item_grafico["color_fondo"] = self.AMARILLO
+                            self.ids.rv_pensum.data[indice] = item_grafico
 
-                        if materia.disponible:
-                            for clave, valor in self.diccionario_widgets_pensum.items():
-                                if valor == materia.codigo:
-                                    clave.md_bg_color = self.AMARILLO
 
                     # Materia con 3 requisitos
                     if materia.pre3 != "''" and not materia.aprobada:
-                        materia.disponible = True
                         pre1materia = self.buscar_por_codigo(materia.pre1)
                         pre2materia = self.buscar_por_codigo(materia.pre2)
                         pre3 = False
@@ -3061,19 +2787,22 @@ class Widget_Principal(ScreenManager):
                             or not pre3
                         ):
                             materia.disponible = False
+                        else:
+                            materia.disponible = True
+                            indice = self.mapa_indices_pensum[materia.codigo]
+                            item_grafico = self.ids.rv_pensum.data[indice].copy()
+                            item_grafico["color_fondo"] = self.AMARILLO
+                            self.ids.rv_pensum.data[indice] = item_grafico
 
-                        if materia.disponible:
-                            for clave, valor in self.diccionario_widgets_pensum.items():
-                                if valor == materia.codigo:
-                                    clave.md_bg_color = self.AMARILLO
 
                     # Materia con requisito de unidades
                     elif materia.pre2 == "U.C." and not materia.aprobada:
                         if self.unidades_aprobadas >= int(materia.pre1):
                             materia.disponible = True
-                            for clave, valor in self.diccionario_widgets_pensum.items():
-                                if valor == materia.codigo:
-                                    clave.md_bg_color = self.AMARILLO
+                            indice = self.mapa_indices_pensum[materia.codigo]
+                            item_grafico = self.ids.rv_pensum.data[indice].copy()
+                            item_grafico["color_fondo"] = self.AMARILLO
+                            self.ids.rv_pensum.data[indice] = item_grafico
 
                     # Entrenamiento industrial
                     elif (
@@ -3083,9 +2812,11 @@ class Widget_Principal(ScreenManager):
                         total = self.materias_totales
                         if self.materias_aprobadas == total - 1:
                             materia.disponible = True
-                            for clave, valor in self.diccionario_widgets_pensum.items():
-                                if valor == materia.codigo:
-                                    clave.md_bg_color = self.AMARILLO
+                            indice = self.mapa_indices_pensum[materia.codigo]
+                            item_grafico = self.ids.rv_pensum.data[indice].copy()
+                            item_grafico["color_fondo"] = self.AMARILLO
+                            self.ids.rv_pensum.data[indice] = item_grafico
+
                     # Trabajo Especial I
                     elif (
                         materia.nombre == "Trabajo Especial I" and not materia.aprobada
@@ -3095,17 +2826,12 @@ class Widget_Principal(ScreenManager):
                             pre2materia = self.buscar_por_codigo(materia.pre2)
                             if pre1materia.aprobada and pre2materia.aprobada:
                                 materia.disponible = True
-                                for (
-                                    clave,
-                                    valor,
-                                ) in self.diccionario_widgets_pensum.items():
-                                    if valor == materia.codigo:
-                                        clave.md_bg_color = self.AMARILLO
+                                indice = self.mapa_indices_pensum[materia.codigo]
+                                item_grafico = self.ids.rv_pensum.data[indice].copy()
+                                item_grafico["color_fondo"] = self.AMARILLO
+                                self.ids.rv_pensum.data[indice] = item_grafico
                         else:
                             materia.disponible = False
-                            for clave, valor in self.diccionario_widgets_pensum.items():
-                                if valor == materia.codigo:
-                                    clave.md_bg_color = self.color_fondo_claro
 
                 # Materia con dos prerequisitos y corequisito
                 if (
@@ -3121,12 +2847,10 @@ class Widget_Principal(ScreenManager):
                             coreqmateria = self.buscar_por_codigo(materia.coreq)
                             if coreqmateria.disponible:
                                 materia.disponible = True
-                                for (
-                                    clave,
-                                    valor,
-                                ) in self.diccionario_widgets_pensum.items():
-                                    if valor == materia.codigo:
-                                        clave.md_bg_color = self.AMARILLO
+                                indice = self.mapa_indices_pensum[materia.codigo]
+                                item_grafico = self.ids.rv_pensum.data[indice].copy()
+                                item_grafico["color_fondo"] = self.AMARILLO
+                                self.ids.rv_pensum.data[indice] = item_grafico
 
                 # Materia con solo corequisito
                 elif (
@@ -3138,9 +2862,10 @@ class Widget_Principal(ScreenManager):
                     coreqmateria = self.buscar_por_codigo(materia.coreq)
                     if coreqmateria.disponible:
                         materia.disponible = True
-                        for clave, valor in self.diccionario_widgets_pensum.items():
-                            if valor == materia.codigo:
-                                clave.md_bg_color = self.AMARILLO
+                        indice = self.mapa_indices_pensum[materia.codigo]
+                        item_grafico = self.ids.rv_pensum.data[indice].copy()
+                        item_grafico["color_fondo"] = self.AMARILLO
+                        self.ids.rv_pensum.data[indice] = item_grafico
 
                 # Materia con un prerequisito y corequisito
                 if (
@@ -3154,13 +2879,18 @@ class Widget_Principal(ScreenManager):
                         coreqmateria = self.buscar_por_codigo(materia.coreq)
                         if coreqmateria.disponible:
                             materia.disponible = True
-                            for clave, valor in self.diccionario_widgets_pensum.items():
-                                if valor == materia.codigo:
-                                    clave.md_bg_color = self.AMARILLO
+                            indice = self.mapa_indices_pensum[materia.codigo]
+                            item_grafico = self.ids.rv_pensum.data[indice].copy()
+                            item_grafico["color_fondo"] = self.AMARILLO
+                            self.ids.rv_pensum.data[indice] = item_grafico
             r += 1
+
+        self.ids.rv_pensum.refresh_from_data()
 
     def desactualizar_pensum(self, codigo):
         lista_materias = self.get_materias()
+        if codigo not in self.materias_dict.keys():
+            return
         for materia in lista_materias:
             if materia.aprobada or materia.disponible:
                 if (
@@ -3227,37 +2957,14 @@ class Widget_Principal(ScreenManager):
                 ):
                     materia.aprobada = False
                     materia.disponible = False
-                    for clave, valor in self.diccionario_widgets_pensum.items():
-                        if valor == materia.codigo:
-                            clave.md_bg_color = self.color_fondo_claro
-                    for clave, valor in self.diccionario_checkboxs_pensum.items():
-                        if valor == materia.codigo:
-                            clave.active = False
+                    indice = self.mapa_indices_pensum[materia.codigo]
+                    item_grafico = self.ids.rv_pensum.data[indice].copy()
+                    item_grafico["color_fondo"] = self.color_fondo_claro
+                    item_grafico["active"] = False
+                    self.ids.rv_pensum.data[indice] = item_grafico
 
-    @auto_save_materias
-    def aprobar_materia(self, checkbox, value, codigo, objeto_lista):
-        materia = self.buscar_por_codigo(codigo)
-
-        if value:
-            if materia.disponible:
-                materia.aprobada = True
-                self.unidades_aprobadas_y_totales()
-                self.actualizar_pensum(materia.codigo)
-                objeto_lista.md_bg_color = self.VERDE
-            else:
-                checkbox.active = False
-        else:
-            if materia.disponible:
-                materia.aprobada = False
-                objeto_lista.md_bg_color = self.AMARILLO
-                self.unidades_aprobadas_y_totales()
-                self.desactualizar_pensum(materia.codigo)
-
-            else:
-                materia.aprobada = False
-                self.unidades_aprobadas_y_totales()
-                objeto_lista.md_bg_color = self.color_fondo_claro
-
+        self.ids.rv_pensum.refresh_from_data()
+    
     def unidades_aprobadas_y_totales(self):
         lista_materias = self.get_materias()
         self.materias_totales = len(lista_materias)
@@ -3371,6 +3078,7 @@ class Widget_Principal(ScreenManager):
             dialogo_informacion.add_widget(boton)
             dialogo_informacion.open()
             self.guia_pensum = False
+            self.guardar_datos_usuario()
 
     def acceso_directo_electivas(self):
         dialogo_advertencia = MDDialog(
@@ -3430,7 +3138,6 @@ class Widget_Principal(ScreenManager):
         if not self.has_screen("Configuracion"):
             self.add_widget(Configuracion())
             pantalla_configuracion = self.get_screen("Configuracion")
-            pantalla_configuracion.tiempo_espera = self.texto_tiempo_espera
             pantalla_configuracion.tema = self.tema
 
         self.current = "Configuracion"
@@ -3445,7 +3152,7 @@ class Widget_Principal(ScreenManager):
             lista_materias_codigos = [materia.codigo for materia in lista_materias]
             box_layout = MDBoxLayout(
                 size_hint_y=None,
-                height=dp(len(lista_electivas) * 100),
+                height=dp(len(lista_electivas) * 105),
                 orientation="vertical",
             )
             scrollview = MDScrollView(
@@ -3469,22 +3176,26 @@ class Widget_Principal(ScreenManager):
                     color_active=self.CYAN,
                     pos_hint={"center_x": 0.9, "center_y": 0.5},
                 )
-                objeto_lista = BoxConRipplePensum(
-                    LabelListaPensum(
-                        text=f"[b][size=14sp]{electiva.nombre}[/size][/b]\n[size=12sp][color={('#B2B2B2' if self.tema=='Oscuro' else '#333333')}]Prereq. 1: {pre1.nombre}{pre2}[/color][/size]"
-                    ),
+                objeto_lista = BoxConRippleElectivas(
+                    MDLabel(markup = True,
+                        text=f"[b][size=14sp]{electiva.nombre}[/size][/b]\n[size=12sp][color={('#B2B2B2' if self.tema=='Oscuro' else '#333333')}]Prereq. 1: {pre1.nombre}{pre2}[/color][/size]",
+                        theme_line_height = "Custom",
+                        line_height = 0.9,
+                        pos_hint = {"x": 0.05},
+                        size_hint_x = 0.8,
+                        outline_color = [0,0,0,1],
+                        outline_width = self.borde_letra_fino),
                     check_box,
+                    size_hint_x = 1, 
+                    size_hint_y = None, 
                     theme_bg_color="Custom",
                     md_bg_color=self.color_fondo_claro,
-                    height=dp(100),
+                    height=dp(105),
                 )
 
                 # Electivas que ya están en la lista de materias
                 if electiva.codigo in lista_materias_codigos:
-                    if electiva.semestre != "Opcional":
-                        self.contador_electivas += 1
-                    else:
-                        self.contador_electivas += 2
+                    self.contador_electivas += electiva.costo
                     check_box.active = True
 
                 check_box.bind(
@@ -3493,8 +3204,8 @@ class Widget_Principal(ScreenManager):
                     )
                 )
                 objeto_lista.bind(
-                    on_touch_down=lambda instance, touch, electiva=electiva, es_semestre=False: self.doble_tap(
-                        instance, touch, electiva, es_semestre
+                    on_touch_down=lambda instance, touch, electiva=electiva, es_semestre=False: self.mostrar_informacion_materia(
+                        electiva, es_semestre, electiva.semestre, touch, instance
                     )
                 )
                 box_layout.add_widget(objeto_lista)
@@ -3564,9 +3275,8 @@ class Widget_Principal(ScreenManager):
         dialogo.dismiss()
         self.transition = SlideTransition(direction="up")
         self.mostrar_materias_inicio()
-        self.cargar_widget_pensum()
-        self.cargar_widget_notas()
-        Clock.schedule_once(lambda dt: self.agregar_widgets_pensum(), 1)
+        self.cargar_datos_pensum()
+        self.cargar_datos_indice()
         self.current = "Pensum"
         self.pensum_active = True
         self.inicio_active = False
@@ -3575,601 +3285,115 @@ class Widget_Principal(ScreenManager):
 
     @auto_save_materias
     def gestionar_electiva(self, checkbox, value, electiva, objeto_lista):
-        def reemplazar_en_indice(materia_a_reemplazar, objeto_add, campo_add):
-            campo_a_eliminar = None
-            for objeto in self.widgets_lista_notas:
-                if objeto.id == f"{materia_a_reemplazar.codigo}WN":
-                    objeto_a_eliminar = objeto
-                    for campo in self.lista_campos:
-                        if campo.id == f"{materia_a_reemplazar.codigo}WCT":
-                            campo_a_eliminar = campo
-
-            # Reemplazarlo si ya estaba cargado, si no solo se añadir a la lista
-            if self.cargar_indice == False:
-                indice = self.ids["menu_notas_materias"].children.index(
-                    objeto_a_eliminar
-                )
-                self.ids["menu_notas_materias"].remove_widget(objeto_a_eliminar)
-                self.ids["menu_notas_materias"].add_widget(objeto_add, indice)
-
-            indice = self.lista_campos.index(campo_a_eliminar)
-            self.lista_campos[indice] = campo_add
-            indice = self.widgets_lista_notas.index(objeto_a_eliminar)
-            self.widgets_lista_notas[indice] = objeto_add
-
-        def reemplazar_en_pensum(materia_a_reemplazar, objeto_add, materia_add):
-            objeto_a_eliminar = None
-            check_a_eliminar = None
-
-            for objeto, codigo_materia in self.diccionario_widgets_pensum.items():
-                if codigo_materia == materia_a_reemplazar.codigo:
-                    objeto_a_eliminar = objeto
-                    for check, codigo in self.diccionario_checkboxs_pensum.items():
-                        if codigo == materia_a_reemplazar.codigo:
-                            check_a_eliminar = check
-
-            # Si se cargó el pensum se reemplaza, si no se añade a la lista
-            if self.cargar_pensum == False:
-                indice = self.ids["menu_pensum_materias"].children.index(
-                    objeto_a_eliminar
-                )
-                self.ids["menu_pensum_materias"].remove_widget(objeto_a_eliminar)
-                self.ids["menu_pensum_materias"].add_widget(objeto_add, indice)
-
-            del self.diccionario_checkboxs_pensum[check_a_eliminar]
-            self.diccionario_widgets_pensum = {
-                (objeto_add if k == objeto_a_eliminar else k): v
-                for k, v in self.diccionario_widgets_pensum.items()
-            }
-            self.diccionario_widgets_pensum[objeto_add] = materia_add.codigo
-
+        if self.inhabilitar_checkbox:
+            return
         lista_materias = self.get_materias()
-        lista_materias_codigos = [materia.semestre for materia in lista_materias]
-        entrenamiento_industrial_opcional = 0
-        if "Opcional" in lista_materias_codigos:
-            entrenamiento_industrial_opcional = 1
+        max_electivas = MAX_ELECTIVAS[self.texto_especialidad]
+        indices_disponibles = []
+        indices_ocupados = []
+        for i, materia in enumerate(lista_materias):
+            if materia.electiva:
+                if materia.costo == 0:
+                    indices_disponibles.append(i)
+                else:
+                    indices_ocupados.append(i)
 
-        max_electivas = 3
-        if self.texto_especialidad == "Ing. Industrial":
-            max_electivas = 2
-            indices_electivas = [49, 55]
-        elif self.texto_especialidad == "Ing. Eléctrica":
-            max_electivas = 4
-            indices_electivas = [49, 50, 54, 55]
-        elif (
-            self.texto_especialidad == "Ing. Electrónica"
-            and not self.texto_mencion == "Comunicaciones"
-        ):
-            indices_electivas = [51, 56, 57]
-        elif (
-            self.texto_especialidad == "Ing. Electrónica"
-            and self.texto_mencion == "Comunicaciones"
-        ):
-            indices_electivas = [55, 56, 57]
-        elif self.texto_especialidad == "Ing. Mecánica":
-            indices_electivas = [52, 53, 54]
-        elif self.texto_especialidad == "Ing. Metalúrgica":
-            indices_electivas = [49, 54, 55]
-        elif self.texto_especialidad == "Ing. Química":
-            indices_electivas = [51, 55, 56]
-
+        #Si se quiere añadir una electiva
         if value:
-            if electiva.semestre != "Opcional":
-                if self.contador_electivas + 1 > max_electivas:
-                    MDSnackbar(
+            #Si se alcanzó el límite de electivas
+            if self.contador_electivas + electiva.costo > max_electivas:
+                MDSnackbar(
                         MDSnackbarText(
                             text=f"Solo puedes añadir hasta {max_electivas} electivas."
                         ),
                         MDSnackbarSupportingText(
-                            text="Deselecciona una y vuelve a intentar."
+                            text="Deselecciona una y vuelve a intentar. (Entrenamiento industrial opcional cuenta como 2 electivas)"
                         ),
                         pos_hint={"center_x": 0.5},
                         size_hint_x=0.8,
                         orientation="horizontal",
                         y=dp(10),
                     ).open()
-                    self.contador_electivas += 1
-                    checkbox.active = False
-                else:
-                    materia_a_reemplazar = lista_materias[
-                        indices_electivas[self.contador_electivas]
-                        - entrenamiento_industrial_opcional
-                    ]
-                    lista_materias[
-                        indices_electivas[self.contador_electivas]
-                        - entrenamiento_industrial_opcional
-                    ] = electiva
+                self.inhabilitar_checkbox = True
+                checkbox.active = False
+                self.inhabilitar_checkbox = False
 
-                    pre1 = self.buscar_por_codigo(electiva.pre1)
-
-                    if electiva.pre2 != "''":
-                        pre2 = self.buscar_por_codigo(electiva.pre2)
-                        req_pre2 = pre2.aprobada
-                    else:
-                        req_pre2 = True
-
-                    if electiva.coreq != "''":
-                        coreq = self.buscar_por_codigo(electiva.coreq)
-                        req_coreq = coreq.disponible
-                    else:
-                        req_coreq = True
-
-                    if pre1.aprobada and req_pre2 and req_coreq:
-                        electiva.disponible = True
-
-                    self.desactualizar_pensum("codigo")
-                    self.unidades_aprobadas_y_totales()
-
-                    self.contador_electivas += 1
-
-                    # Crear widget a reemplazar en el pensum o en el diccionario
-
-                    check_box = CheckBoxPensum(id=electiva.codigo)
-                    objeto_lista = objeto_add = BoxConRipplePensum(
-                        LabelListaPensum(
-                            text=f"[b]{electiva.nombre}\n[size=14sp][color={('#B2B2B2' if self.tema=='Oscuro' else '#333333')}]Código: {electiva.codigo}[/b]\n{electiva.uc} U.C[/color][/size]"
-                        ),
-                        check_box,
-                        id=f"{electiva.codigo}WP",
-                        theme_bg_color="Custom",
-                        md_bg_color=self.color_fondo_claro,
-                    )
-
-                    if electiva.disponible:
-                        objeto_lista.md_bg_color = self.AMARILLO
-                    else:
-                        objeto_lista.md_bg_color = self.color_fondo_claro
-
-                    check_box.bind(
-                        active=lambda checkbox, value, codigo=electiva.codigo, objeto_lista=objeto_lista: self.aprobar_materia(
-                            checkbox, value, codigo, objeto_lista
-                        )
-                    )
-                    self.diccionario_checkboxs_pensum[check_box] = electiva.codigo
-                    objeto_lista.bind(
-                        on_touch_down=lambda instance, touch, electiva=electiva, es_semestre=False: self.doble_tap(
-                            instance, touch, electiva, es_semestre
-                        )
-                    )
-
-                    reemplazar_en_pensum(materia_a_reemplazar, objeto_add, electiva)
-
-                    # Crear widget de indice
-                    campo_texto = campo_add = CampoTextoListaIndice(
-                        id=f"{electiva.codigo}WCT",
-                        text=str(electiva.nota).replace("''", ""),
-                        max_height="35dp",
-                    )
-                    objeto_lista = objeto_add = BoxConRippleIndice(
-                        LabelListaIndice(
-                            text=f"[b]{electiva.nombre}[/b]\n[size=14sp]{electiva.uc} U.C[/size]"
-                        ),
-                        campo_texto,
-                        id=f"{electiva.codigo}WN",
-                    )
-                    campo_texto.bind(
-                        focus=lambda instance, value, codigo=electiva.codigo: self.on_focus(
-                            instance, value, codigo
-                        ),
-                        on_text_validate=self.siguiente_campo_notas,
-                    )
-                    objeto_lista.bind(
-                        on_touch_down=lambda instance, touch, m=electiva: self.ver_evaluaciones(
-                            instance, touch, m, True
-                        )
-                    )
-                    reemplazar_en_indice(materia_a_reemplazar, objeto_add, campo_add)
-
+            #Si hay disponibilidad para agregar una electiva, se agrega.
             else:
-                # Entrenamiento industrial opcional
-                if self.contador_electivas + 2 > max_electivas:
-                    MDSnackbar(
-                        MDSnackbarText(
-                            text=f"Solo puedes añadir hasta {max_electivas} electivas."
-                        ),
-                        MDSnackbarSupportingText(
-                            text="El entrenamiento industrial opcional se realiza en reemplazo de 2 electivas."
-                        ),
-                        pos_hint={"center_x": 0.5},
-                        size_hint_x=0.8,
-                        orientation="horizontal",
-                        y=dp(10),
-                    ).open()
-                    self.contador_electivas += 1
-                    checkbox.active = False
-                else:
-                    materia_a_reemplazar = lista_materias[
-                        indices_electivas[self.contador_electivas]
-                    ]
-                    lista_materias[
-                        indices_electivas[self.contador_electivas]
-                    ] = electiva
-                    materia_a_eliminar = lista_materias[
-                        indices_electivas[self.contador_electivas + 1]
-                    ]
-                    lista_materias.pop(indices_electivas[self.contador_electivas + 1])
+                lista_materias[indices_disponibles[0]] = electiva
+                if electiva.costo == 2:
+                    pre_electiva = lista_materias[indices_disponibles[1] - 1]
+                    if not pre_electiva.electiva:
+                        pre_electiva.pre_electiva = True
+                    del lista_materias[indices_disponibles[1]]
+                self.contador_electivas += electiva.costo
+                self.unidades_aprobadas_y_totales()
+                self.cargar_datos_pensum()
+                if electiva.pre1 != '':
+                    self.actualizar_pensum(electiva.pre1)
+                if electiva.pre2 != '':
+                    self.actualizar_pensum(electiva.pre2)
+                if electiva.pre3 != '':
+                    self.actualizar_pensum(electiva.pre3)
 
-                    pre1 = self.buscar_por_codigo(electiva.pre1)
-
-                    if electiva.pre2 != "''":
-                        pre2 = self.buscar_por_codigo(electiva.pre2)
-                        req_pre2 = pre2.aprobada
-                    else:
-                        req_pre2 = True
-
-                    if electiva.pre3 != "''":
-                        pre3 = self.buscar_por_codigo(electiva.pre2)
-                        req_pre3 = pre3.aprobada
-                    else:
-                        req_pre3 = True
-
-                    if electiva.coreq != "''":
-                        coreq = self.buscar_por_codigo(electiva.coreq)
-                        req_coreq = coreq.disponible
-                    else:
-                        req_coreq = True
-
-                    if pre1.aprobada and req_pre2 and req_pre3 and req_coreq:
-                        electiva.disponible = True
-
-                    self.desactualizar_pensum("codigo")
-                    self.unidades_aprobadas_y_totales()
-
-                    self.contador_electivas += 2
-
-                    # Crear widget a reemplazar en el pensum o en el diccionario
-
-                    check_box = CheckBoxPensum(id=electiva.codigo)
-                    objeto_lista = objeto_add = BoxConRipplePensum(
-                        LabelListaPensum(
-                            text=f"[b]{electiva.nombre}\n[size=14sp][color={('#B2B2B2' if self.tema=='Oscuro' else '#333333')}]Código: {electiva.codigo}[/b]\n{electiva.uc} U.C[/color][/size]"
-                        ),
-                        check_box,
-                        id=f"{electiva.codigo}WP",
-                        theme_bg_color="Custom",
-                        md_bg_color=self.color_fondo_claro,
-                    )
-
-                    if electiva.disponible:
-                        objeto_lista.md_bg_color = self.AMARILLO
-                    else:
-                        objeto_lista.md_bg_color = self.color_fondo_claro
-
-                    check_box.bind(
-                        active=lambda checkbox, value, codigo=electiva.codigo, objeto_lista=objeto_lista: self.aprobar_materia(
-                            checkbox, value, codigo, objeto_lista
-                        )
-                    )
-                    self.diccionario_checkboxs_pensum[check_box] = electiva.codigo
-                    objeto_lista.bind(
-                        on_touch_down=lambda instance, touch, electiva=electiva, es_semestre=False: self.doble_tap(
-                            instance, touch, electiva, es_semestre
-                        )
-                    )
-
-                    # Identificar widgets en el diccionario
-                    objeto_a_eliminar = []
-                    check_a_eliminar = []
-                    for materia in [materia_a_reemplazar, materia_a_eliminar]:
-                        for (
-                            objeto,
-                            codigo_materia,
-                        ) in self.diccionario_widgets_pensum.items():
-                            if codigo_materia == materia.codigo:
-                                objeto_a_eliminar.append(objeto)
-                                for (
-                                    check,
-                                    codigo,
-                                ) in self.diccionario_checkboxs_pensum.items():
-                                    if codigo == materia.codigo:
-                                        check_a_eliminar.append(check)
-
-                    # Si se cargó el pensum se reemplaza, si no se añade a la lista
-                    if self.cargar_pensum == False:
-                        indice = self.ids["menu_pensum_materias"].children.index(
-                            objeto_a_eliminar[0]
-                        )
-                        self.ids["menu_pensum_materias"].remove_widget(
-                            objeto_a_eliminar[0]
-                        )
-                        self.ids["menu_pensum_materias"].add_widget(
-                            objeto_lista, indice
-                        )
-                        self.ids["menu_pensum_materias"].remove_widget(
-                            objeto_a_eliminar[1]
-                        )
-
-                    del self.diccionario_checkboxs_pensum[check_a_eliminar[0]]
-                    del self.diccionario_checkboxs_pensum[check_a_eliminar[1]]
-                    del self.diccionario_widgets_pensum[objeto_a_eliminar[1]]
-                    self.diccionario_widgets_pensum = {
-                        (objeto_add if k == objeto_a_eliminar[0] else k): v
-                        for k, v in self.diccionario_widgets_pensum.items()
-                    }
-                    self.diccionario_widgets_pensum[objeto_add] = electiva.codigo
-
-                    # Crear widget de indice
-                    campo_texto = campo_add = CampoTextoListaIndice(
-                        id=f"{electiva.codigo}WCT",
-                        text=str(electiva.nota).replace("''", ""),
-                        max_height="35dp",
-                    )
-                    objeto_lista = objeto_add = BoxConRippleIndice(
-                        LabelListaIndice(
-                            text=f"[b]{electiva.nombre}[/b]\n[size=14sp]{electiva.uc} U.C[/size]"
-                        ),
-                        campo_texto,
-                        id=f"{electiva.codigo}WN",
-                    )
-                    campo_texto.bind(
-                        focus=lambda instance, value, codigo=electiva.codigo: self.on_focus(
-                            instance, value, codigo
-                        ),
-                        on_text_validate=self.siguiente_campo_notas,
-                    )
-                    objeto_lista.bind(
-                        on_touch_down=lambda instance, touch, m=electiva: self.ver_evaluaciones(
-                            instance, touch, m, True
-                        )
-                    )
-
-                    campo_a_eliminar = []
-                    objeto_a_eliminar = []
-                    for materia in [materia_a_reemplazar, materia_a_eliminar]:
-                        for objeto in self.widgets_lista_notas:
-                            if objeto.id == f"{materia.codigo}WN":
-                                objeto_a_eliminar.append(objeto)
-                                for campo in self.lista_campos:
-                                    if campo.id == f"{materia.codigo}WCT":
-                                        campo_a_eliminar.append(campo)
-
-                    # Reemplazarlo si ya estaba cargado, si no solo se añadir a la lista
-                    if self.cargar_indice == False:
-                        indice = self.ids["menu_notas_materias"].children.index(
-                            objeto_a_eliminar[0]
-                        )
-                        self.ids["menu_notas_materias"].remove_widget(
-                            objeto_a_eliminar[0]
-                        )
-                        self.ids["menu_notas_materias"].add_widget(objeto_lista, indice)
-                        self.ids["menu_notas_materias"].remove_widget(
-                            objeto_a_eliminar[1]
-                        )
-
-                    indice = self.lista_campos.index(campo_a_eliminar[0])
-                    self.lista_campos[indice] = campo_add
-                    indice = self.widgets_lista_notas.index(objeto_a_eliminar[0])
-                    self.widgets_lista_notas[indice] = objeto_add
-                    self.lista_campos.remove(campo_a_eliminar[1])
-                    self.widgets_lista_notas.remove(objeto_a_eliminar[1])
-
+        #Quitar una electiva
         else:
-            if electiva not in lista_materias:
-                self.contador_electivas -= 1
-            else:
-                # Crear widget a reemplazar en el indice
-
-                codigos_defecto = [
+            codigos_defecto = [
                     "Según Materia I",
                     "Según Materia II",
                     "Según Materia III",
                     "Según Materia IV",
                 ]
-                nombres_defecto = [
-                    "Electiva Profesional I",
-                    "Electiva Profesional II",
-                    "Electiva Profesional III",
-                    "Electiva Profesional IV",
-                ]
+            nombres_defecto = [
+                "Electiva Profesional I",
+                "Electiva Profesional II",
+                "Electiva Profesional III",
+                "Electiva Profesional IV",
+            ]
+            semestre = ""
+            indice_quitar = lista_materias.index(electiva)
+            if indice_quitar <= 50:
+                semestre = "VIII"
+            else:
+                semestre = "IX"
 
-                entrenamiento_industrial_opcional = 0
-                if (
-                    "Opcional"
-                    in lista_materias_codigos[: lista_materias.index(electiva)]
-                ):
-                    entrenamiento_industrial_opcional = 1
-                indice = lista_materias.index(electiva)
-                if electiva.semestre != "Opcional":
-                    indice += entrenamiento_industrial_opcional
-                numero_electiva = indices_electivas.index(indice)
-                if indice <= 50:
+            electiva_defecto = Materia(semestre, codigos_defecto[self.contador_electivas - electiva.costo],
+                nombres_defecto[self.contador_electivas - electiva.costo],3,0,0,3,"''",False,False,"''",
+                "''","''",electiva = True)
+
+            lista_materias[indice_quitar] = electiva_defecto
+
+            if electiva.costo == 2:
+                indice_pre_electiva = 0
+                for i, materia in enumerate(lista_materias):
+                    if materia.pre_electiva:
+                        indice_pre_electiva = i
+                        materia.pre_electiva = False
+                        break
+
+                if indice_pre_electiva == 0:
+                    indice_pre_electiva = indice_quitar
+
+                electiva_place_holder = indice_pre_electiva + 1
+
+                if electiva_place_holder <= 50:
                     semestre = "VIII"
                 else:
                     semestre = "IX"
 
-                electiva_defecto = Materia(
-                    semestre,
-                    codigos_defecto[numero_electiva],
-                    nombres_defecto[numero_electiva],
-                    3,
-                    0,
-                    0,
-                    3,
-                    "''",
-                    False,
-                    False,
-                    "''",
-                    "''",
-                    "''",
-                )
+                electiva_defecto = Materia(semestre, codigos_defecto[self.contador_electivas - electiva.costo + 1],
+                    nombres_defecto[self.contador_electivas - electiva.costo + 1],3,0,0,3,"''",False,False,"''",
+                    "''","''",electiva = True)
 
-                campo_texto = campo_add = CampoTextoListaIndice(
-                    id=f"{electiva_defecto.codigo}WCT",
-                    text=str(electiva_defecto.nota).replace("''", ""),
-                    max_height="35dp",
-                )
-                objeto_lista = objeto_add = BoxConRippleIndice(
-                    LabelListaIndice(
-                        text=f"[b]{electiva_defecto.nombre}[/b]\n[size=14sp]{electiva_defecto.uc} U.C[/size]"
-                    ),
-                    campo_texto,
-                    id=f"{electiva_defecto.codigo}WN",
-                )
-                campo_texto.bind(
-                    focus=lambda instance, value, codigo=electiva_defecto.codigo: self.on_focus(
-                        instance, value, codigo
-                    ),
-                    on_text_validate=self.siguiente_campo_notas,
-                )
+                lista_materias.insert(electiva_place_holder, electiva_defecto)
 
-                if electiva.semestre != "Opcional":
-                    indice -= entrenamiento_industrial_opcional
-                lista_materias[indice] = electiva_defecto
-
-                reemplazar_en_indice(electiva, objeto_add, campo_add)
-
-                # Crear widget a reemplazar en pensum
-                check_box = CheckBoxPensum(id=electiva_defecto.codigo)
-                objeto_lista = objeto_add = BoxConRipplePensum(
-                    LabelListaPensum(
-                        text=f"[b]{electiva_defecto.nombre}\n[size=14sp][color={('#B2B2B2' if self.tema=='Oscuro' else '#333333')}]Código: {electiva_defecto.codigo}[/b]\n{electiva_defecto.uc} U.C[/color][/size]"
-                    ),
-                    check_box,
-                    id=f"{electiva_defecto.codigo}WP",
-                    theme_bg_color="Custom",
-                    md_bg_color=self.color_fondo_claro,
-                )
-
-                if electiva_defecto.disponible:
-                    objeto_lista.md_bg_color = self.AMARILLO
-                else:
-                    objeto_lista.md_bg_color = self.color_fondo_claro
-
-                check_box.bind(
-                    active=lambda checkbox, value, codigo=electiva_defecto.codigo, objeto_lista=objeto_lista: self.aprobar_materia(
-                        checkbox, value, codigo, objeto_lista
-                    )
-                )
-                self.diccionario_checkboxs_pensum[check_box] = electiva_defecto.codigo
-                objeto_lista.bind(
-                    on_touch_down=lambda instance, touch, electiva_defecto=electiva_defecto, es_semestre=False: self.doble_tap(
-                        instance, touch, electiva_defecto, es_semestre
-                    )
-                )
-
-                reemplazar_en_pensum(electiva, objeto_add, electiva_defecto)
-
-                self.contador_electivas -= 1
-
-                if electiva.semestre == "Opcional":
-                    numero_electiva += 1
-                    indice = indices_electivas[numero_electiva]
-                    if indice <= 50:
-                        semestre = "VIII"
-                    else:
-                        semestre = "IX"
-
-                    # Crear materia y widget extra para el indice
-                    electiva_defecto = Materia(
-                        semestre,
-                        codigos_defecto[numero_electiva],
-                        nombres_defecto[numero_electiva],
-                        3,
-                        0,
-                        0,
-                        3,
-                        "''",
-                        False,
-                        False,
-                        "''",
-                        "''",
-                        "''",
-                    )
-
-                    campo_texto = campo_add = CampoTextoListaIndice(
-                        id=f"{electiva_defecto.codigo}WCT",
-                        text=str(electiva_defecto.nota).replace("''", ""),
-                        max_height="35dp",
-                    )
-                    objeto_lista = objeto_add = BoxConRippleIndice(
-                        LabelListaIndice(
-                            text=f"[b]{electiva_defecto.nombre}[/b]\n[size=14sp]{electiva_defecto.uc} U.C[/size]"
-                        ),
-                        campo_texto,
-                        id=f"{electiva_defecto.codigo}WN",
-                    )
-                    campo_texto.bind(
-                        focus=lambda instance, value, codigo=electiva_defecto.codigo: self.on_focus(
-                            instance, value, codigo
-                        ),
-                        on_text_validate=self.siguiente_campo_notas,
-                    )
-
-                    lista_materias.insert(indice, electiva_defecto)
-                    widgets_semestre = 1 if semestre == "IX" else 2
-                    posicion = len(lista_materias) - indice - 1 + widgets_semestre
-
-                    # Añadir widget extra en indice
-                    if self.cargar_indice == False:
-                        self.ids["menu_notas_materias"].add_widget(objeto_add, posicion)
-
-                    self.lista_campos.insert(indice, campo_add)
-                    self.widgets_lista_notas.insert(
-                        indice + 10 - widgets_semestre, objeto_add
-                    )
-
-                    # Crear materia y widget extra para el pensum
-                    check_box = CheckBoxPensum(id=electiva_defecto.codigo)
-                    objeto_lista = objeto_add = BoxConRipplePensum(
-                        LabelListaPensum(
-                            text=f"[b]{electiva_defecto.nombre}\n[size=14sp][color={('#B2B2B2' if self.tema=='Oscuro' else '#333333')}]Código: {electiva_defecto.codigo}[/b]\n{electiva_defecto.uc} U.C[/color][/size]"
-                        ),
-                        check_box,
-                        id=f"{electiva_defecto.codigo}WP",
-                        theme_bg_color="Custom",
-                        md_bg_color=self.color_fondo_claro,
-                    )
-
-                    if electiva_defecto.disponible:
-                        objeto_lista.md_bg_color = self.AMARILLO
-                    else:
-                        objeto_lista.md_bg_color = self.color_fondo_claro
-
-                    check_box.bind(
-                        active=lambda checkbox, value, codigo=electiva_defecto.codigo, objeto_lista=objeto_lista: self.aprobar_materia(
-                            checkbox, value, codigo, objeto_lista
-                        )
-                    )
-                    self.diccionario_checkboxs_pensum[
-                        check_box
-                    ] = electiva_defecto.codigo
-                    objeto_lista.bind(
-                        on_touch_down=lambda instance, touch, electiva_defecto=electiva_defecto, es_semestre=False: self.doble_tap(
-                            instance, touch, electiva_defecto, es_semestre
-                        )
-                    )
-
-                    # Añadir widget extra en pensum
-                    if self.cargar_pensum == False:
-                        self.ids["menu_pensum_materias"].add_widget(
-                            objeto_add, posicion
-                        )
-
-                    items = list(self.diccionario_widgets_pensum.items())
-                    items.insert(
-                        indice + 10 - widgets_semestre,
-                        (objeto_add, electiva_defecto.codigo),
-                    )
-                    self.diccionario_widgets_pensum = dict(items)
-
-                    self.contador_electivas -= 1
-                    self.desactualizar_pensum("codigo")
-                    self.unidades_aprobadas_y_totales()
+            self.contador_electivas -= electiva.costo
+            self.unidades_aprobadas_y_totales()
+            self.desactualizar_pensum(electiva.codigo)
 
     def reiniciar_widgets(self):
-        if Widget_Principal.activado_pensum == False:
-            self.ids["menu_pensum_materias"].clear_widgets()
-            self.diccionario_widgets_pensum = {}
-            self.diccionario_checkboxs_pensum = {}
-            Widget_Principal.activado_pensum = True
-            self.cargar_pensum = True
-
-        if Widget_Principal.activado == False:
-            self.ids["menu_notas_materias"].clear_widgets()
-            self.widgets_lista_notas = []
-            self.lista_campos = []
-            Widget_Principal.activado = True
-            self.cargar_indice = True
+        self.cargar_datos_pensum()
+        self.cargar_datos_indice()
 
         if self.has_screen("Horario"):
             self.get_screen("Horario").ids["contenedor_horario"].clear_widgets()
@@ -4242,61 +3466,49 @@ class Widget_Principal(ScreenManager):
         dialogo.dismiss()
         self.current = "Login"
 
-    # Configuración-Velocidad de carga
-    @auto_save_usuario
-    def velocidad_carga(self, x):
-        self.tiempo_espera = x
-        pantalla_configuracion = self.get_screen("Configuracion")
-        if x == 0.10:
-            self.texto_tiempo_espera = "Rápida"
-            pantalla_configuracion.tiempo_espera = "Rápida"
-        else:
-            self.texto_tiempo_espera = "Optimizada"
-            pantalla_configuracion.tiempo_espera = "Optimizada"
-        self.menu_velocidad_carga.dismiss()
-
     # Pantalla Horario
     def cargar_datos_horario(self, *args):
-        """Carga datos locales y decide si buscar actualización automática."""
-        
-        # 1. Intentar cargar Base de Datos (Horarios)
-        try:
-            ruta_db = join(RUTA_ARCHIVOS, "base_datos_horario", "base_datos.json")
-            Logger.info(f"Cargando DB horario: {ruta_db}")
-            with open(ruta_db, "r", encoding="utf-8") as archivo:
-                self.base_datos_horario = json.load(archivo)
-        except (FileNotFoundError, json.JSONDecodeError):
-            self.base_datos_horario = None
-            Logger.warning("No hay base de datos local válida.")
+        def thread(self):
+            """Carga datos locales y decide si buscar actualización automática."""
+            
+            # 1. Intentar cargar Base de Datos (Horarios)
+            try:
+                ruta_db = join(RUTA_ARCHIVOS, "base_datos_horario", "base_datos.json")
+                Logger.info(f"Cargando DB horario: {ruta_db}")
+                with open(ruta_db, "r", encoding="utf-8") as archivo:
+                    self.base_datos_horario = json.load(archivo)
+            except (FileNotFoundError, json.JSONDecodeError):
+                self.base_datos_horario = None
+                Logger.warning("No hay base de datos local válida.")
 
-        # 2. Intentar cargar Metadatos (Versión, Lapso, Fecha)
-        try:
-            ruta_ver = join(RUTA_ARCHIVOS, "base_datos_horario", "version_local.json")
-            with open(ruta_ver, "r", encoding="utf-8") as archivo:
-                data = json.load(archivo)
-                self.version_local_horario = data.get("version", 0)
-                self.pantalla_horario.texto_lapso_academico = data.get("lapso", "---")
-                self.pantalla_horario.texto_fecha_actualizacion = data.get("fecha_actualizacion", "---")
-        except Exception:
-            self.version_local_horario = 0
-            self.pantalla_horario.texto_lapso_academico = "---"
-            self.pantalla_horario.texto_fecha_actualizacion = "---"
+            # 2. Intentar cargar Metadatos (Versión, Lapso, Fecha)
+            try:
+                ruta_ver = join(RUTA_ARCHIVOS, "base_datos_horario", "version_local.json")
+                with open(ruta_ver, "r", encoding="utf-8") as archivo:
+                    data = json.load(archivo)
+                    self.version_local_horario = data.get("version", 0)
+                    self.pantalla_horario.texto_lapso_academico = data.get("lapso", "---")
+                    self.pantalla_horario.texto_fecha_actualizacion = data.get("fecha_actualizacion", "---")
+            except Exception:
+                self.version_local_horario = 0
+                self.pantalla_horario.texto_lapso_academico = "---"
+                self.pantalla_horario.texto_fecha_actualizacion = "---"
 
-        # 3. Lógica de Automatización
-        if self.base_datos_horario is None:
-            # CASO PRIMERA VEZ: Bloquear UI y tratar de descargar
-            Logger.info("Instalación limpia. Iniciando descarga automática...")
-            Clock.schedule_once(lambda dt: self.validar_estado_ui_horario(), 0.1)
-            # Damos un pequeño delay para que la UI cargue antes de lanzar la petición
-            Clock.schedule_once(lambda dt: self.iniciar_actualizacion_horario(), 1.5)
-        else:
-            # CASO NORMAL: Solo validar botones
-            Clock.schedule_once(lambda dt: self.validar_estado_ui_horario(), 0.1)
+            # 3. Lógica de Automatización
+            if self.base_datos_horario is None:
+                # CASO PRIMERA VEZ: Bloquear UI y tratar de descargar
+                Logger.info("Instalación limpia. Iniciando descarga automática...")
+                Clock.schedule_once(lambda dt: self.validar_estado_ui_horario(), 0.1)
+            else:
+                # CASO NORMAL: Solo validar botones
+                Clock.schedule_once(lambda dt: self.validar_estado_ui_horario(), 0.1)
+
+        threading.Thread(target=thread, args=(self,)).start()
 
     def cargar_datos_horario_usuario(self, *args):
         try:
             Logger.info("Cargando datos de usuario de horario")
-            with open(join(RUTA_ARCHIVOS, "datos_usuario", f"datos_usuario_{self.texto_especialidad.replace(".","")}{self.texto_mencion}.json"), "r",
+            with open(join(RUTA_ARCHIVOS, "datos_usuario", f"datos_usuario_{self.texto_especialidad.replace('.','')}{self.texto_mencion}.json"), "r",
             encoding="utf-8") as archivo:
                 self.datos_usuario_horario = json.load(archivo)
                 Logger.debug("Archivo cargado correctamente")
@@ -4442,7 +3654,11 @@ class Widget_Principal(ScreenManager):
             self.actualizar_interfaz_horario()
             MDSnackbar(
                 MDSnackbarText(text='¡Base de datos actualizada!', halign="center"),
+                MDSnackbarSupportingText(text=meta_data_version.get("mensaje", "---")),
                 duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+
+            Clock.schedule_once(lambda dt,
+             opcional = "\n\nActualización de horarios recibida, es importante borrar las materias y volverlas a seleccionar para aplicar los cambios.": self.advertencia_borrar_datos_horario(opcional), 5)
 
         except Exception as e:
             Logger.error(f"Error escribiendo archivos: {e}")
@@ -4520,15 +3736,18 @@ class Widget_Principal(ScreenManager):
                         panel = ExpansionPanelItem(materia)
                         for seccion in secciones_disponibles:
                             await ak.sleep(0)
-                            dias = self.formato_a_dias(seccion["FORMATO"])
-                            aulas = self.simplificar_aulas(seccion["AULA"])
-                            widget_seccion = Seccion(materia, seccion["SEC"], seccion["PROFESOR"], dias, True, aulas)
-                            seccion["ACTIVA"] = True
-                            panel.ids["content"].add_widget(widget_seccion)
+                            if seccion["FORMATO"] == "" or not seccion["FORMATO"]:
+                                materias_sin_datos.append(materia)
+                            else:
+                                dias = self.formato_a_dias(seccion["FORMATO"])
+                                aulas = self.simplificar_aulas(seccion["AULA"])
+                                widget_seccion = Seccion(materia, seccion["SEC"], seccion["PROFESOR"], dias, True, aulas)
+                                seccion["ACTIVA"] = True
+                                panel.ids["content"].add_widget(widget_seccion)
 
-                        self.datos_usuario_horario[codigo] = secciones_disponibles
-
-                        contenedor.add_widget(panel)
+                        if materia not in materias_sin_datos:
+                            self.datos_usuario_horario[codigo] = secciones_disponibles
+                            contenedor.add_widget(panel)
                     else:
                         materias_sin_datos.append(self.buscar_por_codigo(codigo))
 
@@ -4679,6 +3898,9 @@ class Widget_Principal(ScreenManager):
                 padre = box.parent
                 padre.remove_widget(box)
             self.bloques_horario_materias.clear()
+            self.horario = []
+            self.secciones = []
+            self.profesores = []
             self.crear_horarios(self.numero_horario)
 
     def crear_bloques_horario(self, *args):
@@ -4864,140 +4086,213 @@ class Widget_Principal(ScreenManager):
                 size_hint_x=0.8,
             ).open()
         else:
-            combinaciones_formato = list(product(*lista_maestra))
-            combinaciones_secciones = list(product(*lista_secciones))
-            combinaciones_profesores = list(product(*lista_profesores))
+            if self.horario:
+                self.mostrar_horario(lista_posibles_bloques, codigos, numero_horario, lista_colores)
+                return
 
-            self.max_horarios = len(combinaciones_formato)
-            self.pantalla_generar_horario.max_horarios = self.max_horarios
-            choques_por_horario = []
 
-            for horario in combinaciones_formato:
-                repetidos = set()
-                contador_choques = 0
-                for materia in horario:
-                    for bloque in materia:
-                        if bloque in repetidos:
-                            contador_choques += 1
-                        else:
-                            repetidos.add(bloque)
-                choques_por_horario.append(contador_choques)
+            total = 1
+            for mat in lista_maestra:
+                total *= len(mat)
 
-            combinaciones_formato_sin_ordenar = combinaciones_formato.copy()
-            combinaciones_secciones_sin_ordenar = combinaciones_secciones.copy()
-            combinaciones_profesores_sin_ordenar = combinaciones_profesores.copy()
-            choques_sin_ordenar = choques_por_horario.copy()
-            choques_por_horario.sort()
+            if total > 5000:
+                for button in self.pantalla_generar_horario.ids["FloatLayoutHorario"].children:
+                    button.disabled = True
+                MDSnackbar(
+                MDSnackbarText(
+                    text=f"Calculando {total} horarios. Esto puede tomar un rato.",
+                    halign="center",
+                ),
+                duration=4,
+                pos_hint={"center_x": 0.92, "center_y": 0.5},
+                size_hint_x=1,
+                rotate_value_angle=90,
+                theme_focus_color="Custom",
+                focus_color=[1, 1, 1, 0],
+                ripple_color=[1, 1, 1, 0],
+                state_press=0,
+                ).open()
+
+            Clock.schedule_once(lambda dt: threading.Thread(
+                target=self.combinaciones_horario, 
+                args=(lista_maestra, lista_secciones, lista_profesores, 
+                      lista_posibles_bloques, codigos, numero_horario, lista_colores)
+            ).start(), 0.15)
             
-            for i,choque in enumerate(choques_por_horario):
-                ubicacion_anterior = choques_sin_ordenar.index(choque)
-                choques_sin_ordenar[ubicacion_anterior] = ""
-                combinaciones_formato[i] = combinaciones_formato_sin_ordenar[
-                    ubicacion_anterior
-                ]
-                combinaciones_secciones[i] = combinaciones_secciones_sin_ordenar[
-                    ubicacion_anterior
-                ]
-                combinaciones_profesores[i] = combinaciones_profesores_sin_ordenar[
-                    ubicacion_anterior
-                ]
+    def combinaciones_horario(self, lista_maestra, lista_secciones,
+     lista_profesores, lista_posibles_bloques, codigos, numero_horario, lista_colores):
+        combinaciones_formato = list(product(*lista_maestra))
+        combinaciones_secciones = list(product(*lista_secciones))
+        combinaciones_profesores = list(product(*lista_profesores))
 
-            try:
-                horario = combinaciones_formato[numero_horario]
-            except IndexError as e:
-                numero_horario = 0
-                self.numero_horario = 0
+        self.max_horarios = len(combinaciones_formato)
+        self.pantalla_generar_horario.max_horarios = self.max_horarios
+        choques_por_horario = []
 
-            horario = combinaciones_formato[numero_horario]
-            secciones = combinaciones_secciones[numero_horario]
-            profesores = combinaciones_profesores[numero_horario]
-
-            if self.cambiar_colores:
-                self.color = random.sample(lista_colores, k=11)
-                self.cambiar_colores = False
-
+        for horario in combinaciones_formato:
             repetidos = set()
             contador_choques = 0
-
-            for i,materia in enumerate(horario):
-                nombre = self.buscar_por_codigo(codigos[i]).nombre
-                lista_de_bloques = materia
-                bloques_consecutivos = 0
-                pasos_restantes = 0
+            for materia in horario:
                 for bloque in materia:
-                    # Verificar bloques consecutivos
-                    if pasos_restantes == 0:
-                        posicion_bloque_global = lista_posibles_bloques.index(bloque)
-                        posicion_bloque_local = lista_de_bloques.index(bloque)
-                        if (posicion_bloque_local + 1) < len(
-                            lista_de_bloques
-                        ) and posicion_bloque_global + 1 < len(lista_posibles_bloques):
-                            if (
-                                lista_de_bloques[posicion_bloque_local + 1]
-                                == lista_posibles_bloques[posicion_bloque_global + 1]
-                            ):
-                                bloques_consecutivos = 2
-                                if (posicion_bloque_local + 2) < len(
-                                    lista_de_bloques
-                                ) and (posicion_bloque_global + 2) < len(
-                                    lista_posibles_bloques
-                                ):
-                                    if (
-                                        lista_de_bloques[posicion_bloque_local + 2]
-                                        == lista_posibles_bloques[
-                                            posicion_bloque_global + 2
-                                        ]
-                                    ):
-                                        bloques_consecutivos = 3
-                                        if (posicion_bloque_local + 3) < len(
-                                            lista_de_bloques
-                                        ) and (posicion_bloque_global + 3) < len(
-                                            lista_posibles_bloques
-                                        ):
-                                            if (
-                                                lista_de_bloques[
-                                                    posicion_bloque_local + 3
-                                                ]
-                                                == lista_posibles_bloques[
-                                                    posicion_bloque_global + 3
-                                                ]
-                                            ):
-                                                bloques_consecutivos = 4
-                                                if (posicion_bloque_local + 4) < len(
-                                                    lista_de_bloques
-                                                ) and (
-                                                    posicion_bloque_global + 4
-                                                ) < len(
-                                                    lista_posibles_bloques
-                                                ):
-                                                    if (
-                                                        lista_de_bloques[
-                                                            posicion_bloque_local + 4
-                                                        ]
-                                                        == lista_posibles_bloques[
-                                                            posicion_bloque_global + 4
-                                                        ]
-                                                    ):
-                                                        bloques_consecutivos = 5
-                        pasos_restantes = bloques_consecutivos
-
                     if bloque in repetidos:
                         contador_choques += 1
                     else:
                         repetidos.add(bloque)
+            choques_por_horario.append(contador_choques)
 
-                    for boxlayout in self.bloques_horario:
-                        if boxlayout.id == f"{bloque}b":
-                            if secciones[i] == "":
-                                texto_seccion = ""
-                            else:
-                                texto_seccion = f"Secc. {secciones[i]}"
+        combinaciones_formato_sin_ordenar = combinaciones_formato.copy()
+        combinaciones_secciones_sin_ordenar = combinaciones_secciones.copy()
+        combinaciones_profesores_sin_ordenar = combinaciones_profesores.copy()
+        choques_sin_ordenar = choques_por_horario.copy()
+        choques_por_horario.sort()
+        
+        for i,choque in enumerate(choques_por_horario):
+            ubicacion_anterior = choques_sin_ordenar.index(choque)
+            choques_sin_ordenar[ubicacion_anterior] = ""
+            combinaciones_formato[i] = combinaciones_formato_sin_ordenar[
+                ubicacion_anterior
+            ]
+            combinaciones_secciones[i] = combinaciones_secciones_sin_ordenar[
+                ubicacion_anterior
+            ]
+            combinaciones_profesores[i] = combinaciones_profesores_sin_ordenar[
+                ubicacion_anterior
+            ]
 
-                            if bloques_consecutivos == 0:
+        self.horario = combinaciones_formato
+        self.secciones = combinaciones_secciones
+        self.profesores = combinaciones_profesores
+
+        if self.cambiar_colores:
+            self.color = random.sample(lista_colores, k=11)
+            self.cambiar_colores = False
+
+        self.mostrar_horario(lista_posibles_bloques, codigos, numero_horario, lista_colores)
+
+    @mainthread
+    def mostrar_horario(self, lista_posibles_bloques, codigos, numero_horario, lista_colores):
+        if len(self.horario) - 1 < numero_horario:
+            numero_horario = 0
+            self.numero_horario = 0
+
+        horario = self.horario[numero_horario]
+        secciones = self.secciones[numero_horario]
+        profesores = self.profesores[numero_horario]
+        repetidos = set()
+        contador_choques = 0
+
+        for i,materia in enumerate(horario):
+            nombre = self.buscar_por_codigo(codigos[i]).nombre
+            aulas = []
+            for sec in self.datos_usuario_horario[codigos[i]]:
+                if sec["SEC"] == secciones[i]:
+                    aulas = sec["AULA"]
+                    break
+            aulas = aulas.split(",")
+            lista_de_bloques = materia
+            bloques_consecutivos = 0
+            pasos_restantes = 0
+            for j,bloque in enumerate(materia):
+                # Verificar bloques consecutivos
+                if pasos_restantes == 0:
+                    posicion_bloque_global = lista_posibles_bloques.index(bloque)
+                    posicion_bloque_local = lista_de_bloques.index(bloque)
+                    if (posicion_bloque_local + 1) < len(
+                        lista_de_bloques
+                    ) and posicion_bloque_global + 1 < len(lista_posibles_bloques):
+                        if (
+                            lista_de_bloques[posicion_bloque_local + 1]
+                            == lista_posibles_bloques[posicion_bloque_global + 1]
+                        ):
+                            bloques_consecutivos = 2
+                            if (posicion_bloque_local + 2) < len(
+                                lista_de_bloques
+                            ) and (posicion_bloque_global + 2) < len(
+                                lista_posibles_bloques
+                            ):
+                                if (
+                                    lista_de_bloques[posicion_bloque_local + 2]
+                                    == lista_posibles_bloques[
+                                        posicion_bloque_global + 2
+                                    ]
+                                ):
+                                    bloques_consecutivos = 3
+                                    if (posicion_bloque_local + 3) < len(
+                                        lista_de_bloques
+                                    ) and (posicion_bloque_global + 3) < len(
+                                        lista_posibles_bloques
+                                    ):
+                                        if (
+                                            lista_de_bloques[
+                                                posicion_bloque_local + 3
+                                            ]
+                                            == lista_posibles_bloques[
+                                                posicion_bloque_global + 3
+                                            ]
+                                        ):
+                                            bloques_consecutivos = 4
+                                            if (posicion_bloque_local + 4) < len(
+                                                lista_de_bloques
+                                            ) and (
+                                                posicion_bloque_global + 4
+                                            ) < len(
+                                                lista_posibles_bloques
+                                            ):
+                                                if (
+                                                    lista_de_bloques[
+                                                        posicion_bloque_local + 4
+                                                    ]
+                                                    == lista_posibles_bloques[
+                                                        posicion_bloque_global + 4
+                                                    ]
+                                                ):
+                                                    bloques_consecutivos = 5
+                    pasos_restantes = bloques_consecutivos
+
+                if bloque in repetidos:
+                    contador_choques += 1
+                else:
+                    repetidos.add(bloque)
+
+                for boxlayout in self.bloques_horario:
+                    if boxlayout.id == f"{bloque}b":
+                        if secciones[i] == "":
+                            texto_seccion = ""
+                        else:
+                            texto_seccion = f"Secc. {secciones[i]}"
+
+                        if self.pantalla_horario.ids["mostrar_aulas"].active:
+                            aula_str = (f" - {aulas[j]}" if len(aulas)>=j+1 else "")
+                        else:
+                            aula_str = ""
+
+                        if self.pantalla_horario.ids["mostrar_profesores"].active:
+                            profesores_str = f"\n{profesores[i]}"
+                        else:
+                            profesores_str = ""
+
+                        if bloques_consecutivos == 0:
+                            
+                            boxlayout_materia = MDBoxLayout(
+                                MDLabel(
+                                    markup=True,
+                                    text=f"[b]{nombre}[/b] {texto_seccion}{aula_str}{profesores_str}",
+                                    theme_font_size="Custom",
+                                    font_size="9sp",
+                                    halign="center",
+                                    theme_line_height="Custom",
+                                    line_height=0.85,
+                                    theme_text_color="Custom",
+                                    text_color="black",
+                                ),
+                                md_bg_color=self.color[i],
+                            )
+                        elif bloques_consecutivos == 2:
+                            if pasos_restantes == 2:
                                 boxlayout_materia = MDBoxLayout(
                                     MDLabel(
                                         markup=True,
-                                        text=f"[b]{nombre}[/b] {texto_seccion}\n{profesores[i]}",
+                                        text=f"[b]{nombre}[/b]",
                                         theme_font_size="Custom",
                                         font_size="9sp",
                                         halign="center",
@@ -5008,226 +4303,212 @@ class Widget_Principal(ScreenManager):
                                     ),
                                     md_bg_color=self.color[i],
                                 )
-                            elif bloques_consecutivos == 2:
-                                if pasos_restantes == 2:
-                                    boxlayout_materia = MDBoxLayout(
-                                        MDLabel(
-                                            markup=True,
-                                            text=f"[b]{nombre}[/b]",
-                                            theme_font_size="Custom",
-                                            font_size="9sp",
-                                            halign="center",
-                                            theme_line_height="Custom",
-                                            line_height=0.85,
-                                            theme_text_color="Custom",
-                                            text_color="black",
-                                        ),
-                                        md_bg_color=self.color[i],
-                                    )
-                                    pasos_restantes -= 1
-                                elif pasos_restantes == 1:
-                                    boxlayout_materia = MDBoxLayout(
-                                        MDLabel(
-                                            markup=True,
-                                            text=f"{texto_seccion}\n{profesores[i]}",
-                                            theme_font_size="Custom",
-                                            font_size="9sp",
-                                            halign="center",
-                                            theme_line_height="Custom",
-                                            line_height=0.85,
-                                            theme_text_color="Custom",
-                                            text_color="black",
-                                        ),
-                                        md_bg_color=self.color[i],
-                                    )
-                                    pasos_restantes -= 1
+                                pasos_restantes -= 1
+                            elif pasos_restantes == 1:
+                                boxlayout_materia = MDBoxLayout(
+                                    MDLabel(
+                                        markup=True,
+                                        text=f"{texto_seccion}{aula_str}{profesores_str}",
+                                        theme_font_size="Custom",
+                                        font_size="9sp",
+                                        halign="center",
+                                        theme_line_height="Custom",
+                                        line_height=0.85,
+                                        theme_text_color="Custom",
+                                        text_color="black",
+                                    ),
+                                    md_bg_color=self.color[i],
+                                )
+                                pasos_restantes -= 1
+                                bloques_consecutivos = 0
+                        elif bloques_consecutivos == 3:
+                            if pasos_restantes == 3:
+                                boxlayout_materia = MDBoxLayout(
+                                    MDLabel(
+                                        markup=True,
+                                        text=f"[b]{nombre}[/b]",
+                                        theme_font_size="Custom",
+                                        font_size="9sp",
+                                        halign="center",
+                                        theme_line_height="Custom",
+                                        line_height=0.85,
+                                        theme_text_color="Custom",
+                                        text_color="black",
+                                    ),
+                                    md_bg_color=self.color[i],
+                                )
+                                pasos_restantes -= 1
+                            elif pasos_restantes == 2:
+                                boxlayout_materia = MDBoxLayout(
+                                    MDLabel(
+                                        markup=True,
+                                        text=f"{texto_seccion}{aula_str}",
+                                        theme_font_size="Custom",
+                                        font_size="9sp",
+                                        halign="center",
+                                        theme_line_height="Custom",
+                                        line_height=0.85,
+                                        theme_text_color="Custom",
+                                        text_color="black",
+                                    ),
+                                    md_bg_color=self.color[i],
+                                )
+                                pasos_restantes -= 1
+                            elif pasos_restantes == 1:
+                                boxlayout_materia = MDBoxLayout(
+                                    MDLabel(
+                                        markup=True,
+                                        text=f"{profesores_str}",
+                                        theme_font_size="Custom",
+                                        font_size="9sp",
+                                        halign="center",
+                                        theme_line_height="Custom",
+                                        line_height=0.85,
+                                        theme_text_color="Custom",
+                                        text_color="black",
+                                    ),
+                                    md_bg_color=self.color[i],
+                                )
+                                pasos_restantes -= 1
+                                bloques_consecutivos = 0
+                        elif bloques_consecutivos == 4:
+                            if pasos_restantes == 4 or pasos_restantes == 1:
+                                boxlayout_materia = MDBoxLayout(
+                                    MDLabel(
+                                        markup=True,
+                                        text=f"",
+                                        theme_font_size="Custom",
+                                        font_size="9sp",
+                                        halign="center",
+                                        theme_line_height="Custom",
+                                        line_height=0.85,
+                                        theme_text_color="Custom",
+                                        text_color="black",
+                                    ),
+                                    md_bg_color=self.color[i],
+                                )
+                                if pasos_restantes == 1:
                                     bloques_consecutivos = 0
-                            elif bloques_consecutivos == 3:
-                                if pasos_restantes == 3:
-                                    boxlayout_materia = MDBoxLayout(
-                                        MDLabel(
-                                            markup=True,
-                                            text=f"[b]{nombre}[/b]",
-                                            theme_font_size="Custom",
-                                            font_size="9sp",
-                                            halign="center",
-                                            theme_line_height="Custom",
-                                            line_height=0.85,
-                                            theme_text_color="Custom",
-                                            text_color="black",
-                                        ),
-                                        md_bg_color=self.color[i],
-                                    )
-                                    pasos_restantes -= 1
-                                elif pasos_restantes == 2:
-                                    boxlayout_materia = MDBoxLayout(
-                                        MDLabel(
-                                            markup=True,
-                                            text=f"{texto_seccion}",
-                                            theme_font_size="Custom",
-                                            font_size="9sp",
-                                            halign="center",
-                                            theme_line_height="Custom",
-                                            line_height=0.85,
-                                            theme_text_color="Custom",
-                                            text_color="black",
-                                        ),
-                                        md_bg_color=self.color[i],
-                                    )
-                                    pasos_restantes -= 1
-                                elif pasos_restantes == 1:
-                                    boxlayout_materia = MDBoxLayout(
-                                        MDLabel(
-                                            markup=True,
-                                            text=f"{profesores[i]}",
-                                            theme_font_size="Custom",
-                                            font_size="9sp",
-                                            halign="center",
-                                            theme_line_height="Custom",
-                                            line_height=0.85,
-                                            theme_text_color="Custom",
-                                            text_color="black",
-                                        ),
-                                        md_bg_color=self.color[i],
-                                    )
-                                    pasos_restantes -= 1
+                                pasos_restantes -= 1
+                            elif pasos_restantes == 3:
+                                boxlayout_materia = MDBoxLayout(
+                                    MDLabel(
+                                        markup=True,
+                                        text=f"[b]{nombre}[/b]",
+                                        theme_font_size="Custom",
+                                        font_size="9sp",
+                                        halign="center",
+                                        theme_line_height="Custom",
+                                        line_height=0.85,
+                                        theme_text_color="Custom",
+                                        text_color="black",
+                                    ),
+                                    md_bg_color=self.color[i],
+                                )
+                                pasos_restantes -= 1
+                            elif pasos_restantes == 2:
+                                boxlayout_materia = MDBoxLayout(
+                                    MDLabel(
+                                        markup=True,
+                                        text=f"{texto_seccion}{aula_str}{profesores_str}",
+                                        theme_font_size="Custom",
+                                        font_size="9sp",
+                                        halign="center",
+                                        theme_line_height="Custom",
+                                        line_height=0.85,
+                                        theme_text_color="Custom",
+                                        text_color="black",
+                                    ),
+                                    md_bg_color=self.color[i],
+                                )
+                                pasos_restantes -= 1
+                        elif bloques_consecutivos == 5:
+                            if pasos_restantes == 5 or pasos_restantes == 1:
+                                boxlayout_materia = MDBoxLayout(
+                                    MDLabel(
+                                        markup=True,
+                                        text=f"",
+                                        theme_font_size="Custom",
+                                        font_size="9sp",
+                                        halign="center",
+                                        theme_line_height="Custom",
+                                        line_height=0.85,
+                                        theme_text_color="Custom",
+                                        text_color="black",
+                                    ),
+                                    md_bg_color=self.color[i],
+                                )
+                                if pasos_restantes == 1:
                                     bloques_consecutivos = 0
-                            elif bloques_consecutivos == 4:
-                                if pasos_restantes == 4 or pasos_restantes == 1:
-                                    boxlayout_materia = MDBoxLayout(
-                                        MDLabel(
-                                            markup=True,
-                                            text=f"",
-                                            theme_font_size="Custom",
-                                            font_size="9sp",
-                                            halign="center",
-                                            theme_line_height="Custom",
-                                            line_height=0.85,
-                                            theme_text_color="Custom",
-                                            text_color="black",
-                                        ),
-                                        md_bg_color=self.color[i],
-                                    )
-                                    if pasos_restantes == 1:
-                                        bloques_consecutivos = 0
-                                    pasos_restantes -= 1
-                                elif pasos_restantes == 3:
-                                    boxlayout_materia = MDBoxLayout(
-                                        MDLabel(
-                                            markup=True,
-                                            text=f"[b]{nombre}[/b]",
-                                            theme_font_size="Custom",
-                                            font_size="9sp",
-                                            halign="center",
-                                            theme_line_height="Custom",
-                                            line_height=0.85,
-                                            theme_text_color="Custom",
-                                            text_color="black",
-                                        ),
-                                        md_bg_color=self.color[i],
-                                    )
-                                    pasos_restantes -= 1
-                                elif pasos_restantes == 2:
-                                    boxlayout_materia = MDBoxLayout(
-                                        MDLabel(
-                                            markup=True,
-                                            text=f"{texto_seccion}\n{profesores[i]}",
-                                            theme_font_size="Custom",
-                                            font_size="9sp",
-                                            halign="center",
-                                            theme_line_height="Custom",
-                                            line_height=0.85,
-                                            theme_text_color="Custom",
-                                            text_color="black",
-                                        ),
-                                        md_bg_color=self.color[i],
-                                    )
-                                    pasos_restantes -= 1
-                            elif bloques_consecutivos == 5:
-                                if pasos_restantes == 5 or pasos_restantes == 1:
-                                    boxlayout_materia = MDBoxLayout(
-                                        MDLabel(
-                                            markup=True,
-                                            text=f"",
-                                            theme_font_size="Custom",
-                                            font_size="9sp",
-                                            halign="center",
-                                            theme_line_height="Custom",
-                                            line_height=0.85,
-                                            theme_text_color="Custom",
-                                            text_color="black",
-                                        ),
-                                        md_bg_color=self.color[i],
-                                    )
-                                    if pasos_restantes == 1:
-                                        bloques_consecutivos = 0
-                                    pasos_restantes -= 1
-                                elif pasos_restantes == 4:
-                                    boxlayout_materia = MDBoxLayout(
-                                        MDLabel(
-                                            markup=True,
-                                            text=f"[b]{nombre}[/b]",
-                                            theme_font_size="Custom",
-                                            font_size="9sp",
-                                            halign="center",
-                                            theme_line_height="Custom",
-                                            line_height=0.85,
-                                            theme_text_color="Custom",
-                                            text_color="black",
-                                        ),
-                                        md_bg_color=self.color[i],
-                                    )
-                                    pasos_restantes -= 1
-                                elif pasos_restantes == 3:
-                                    boxlayout_materia = MDBoxLayout(
-                                        MDLabel(
-                                            markup=True,
-                                            text=f"{texto_seccion}",
-                                            theme_font_size="Custom",
-                                            font_size="9sp",
-                                            halign="center",
-                                            theme_line_height="Custom",
-                                            line_height=0.85,
-                                            theme_text_color="Custom",
-                                            text_color="black",
-                                        ),
-                                        md_bg_color=self.color[i],
-                                    )
-                                    pasos_restantes -= 1
-                                elif pasos_restantes == 2:
-                                    boxlayout_materia = MDBoxLayout(
-                                        MDLabel(
-                                            markup=True,
-                                            text=f"{profesores[i]}",
-                                            theme_font_size="Custom",
-                                            font_size="9sp",
-                                            halign="center",
-                                            theme_line_height="Custom",
-                                            line_height=0.85,
-                                            theme_text_color="Custom",
-                                            text_color="black",
-                                        ),
-                                        md_bg_color=self.color[i],
-                                    )
-                                    pasos_restantes -= 1
+                                pasos_restantes -= 1
+                            elif pasos_restantes == 4:
+                                boxlayout_materia = MDBoxLayout(
+                                    MDLabel(
+                                        markup=True,
+                                        text=f"[b]{nombre}[/b]",
+                                        theme_font_size="Custom",
+                                        font_size="9sp",
+                                        halign="center",
+                                        theme_line_height="Custom",
+                                        line_height=0.85,
+                                        theme_text_color="Custom",
+                                        text_color="black",
+                                    ),
+                                    md_bg_color=self.color[i],
+                                )
+                                pasos_restantes -= 1
+                            elif pasos_restantes == 3:
+                                boxlayout_materia = MDBoxLayout(
+                                    MDLabel(
+                                        markup=True,
+                                        text=f"{texto_seccion}{aula_str}",
+                                        theme_font_size="Custom",
+                                        font_size="9sp",
+                                        halign="center",
+                                        theme_line_height="Custom",
+                                        line_height=0.85,
+                                        theme_text_color="Custom",
+                                        text_color="black",
+                                    ),
+                                    md_bg_color=self.color[i],
+                                )
+                                pasos_restantes -= 1
+                            elif pasos_restantes == 2:
+                                boxlayout_materia = MDBoxLayout(
+                                    MDLabel(
+                                        markup=True,
+                                        text=f"{profesores_str}",
+                                        theme_font_size="Custom",
+                                        font_size="9sp",
+                                        halign="center",
+                                        theme_line_height="Custom",
+                                        line_height=0.85,
+                                        theme_text_color="Custom",
+                                        text_color="black",
+                                    ),
+                                    md_bg_color=self.color[i],
+                                )
+                                pasos_restantes -= 1
 
-                            self.bloques_horario_materias.append(boxlayout_materia)
-                            boxlayout.add_widget(boxlayout_materia)
+                        self.bloques_horario_materias.append(boxlayout_materia)
+                        boxlayout.add_widget(boxlayout_materia)
 
-            MDSnackbar(
-                MDSnackbarText(
-                    text=f"Horario #{numero_horario+1} - Choques: {contador_choques}",
-                    halign="center",
-                ),
-                duration=3,
-                pos_hint={"center_x": 0.92, "center_y": 0.5},
-                size_hint_x=0.5,
-                rotate_value_angle=90,
-                theme_focus_color="Custom",
-                focus_color=[1, 1, 1, 0],
-                ripple_color=[1, 1, 1, 0],
-                state_press=0,
-            ).open()
+        MDSnackbar(
+            MDSnackbarText(
+                text=f"Horario #{numero_horario+1} - Choques: {contador_choques}",
+                halign="center",
+            ),
+            duration=3,
+            pos_hint={"center_x": 0.92, "center_y": 0.5},
+            size_hint_x=0.5,
+            rotate_value_angle=90,
+            theme_focus_color="Custom",
+            focus_color=[1, 1, 1, 0],
+            ripple_color=[1, 1, 1, 0],
+            state_press=0,
+        ).open()
+        for button in self.pantalla_generar_horario.ids["FloatLayoutHorario"].children:
+            button.disabled = False
 
     def siguiente_horario(self, paso):
         if self.numero_horario < self.max_horarios - paso:
@@ -5290,15 +4571,16 @@ class Widget_Principal(ScreenManager):
             dialogo_informacion.add_widget(boton)
             dialogo_informacion.open()
             self.guia_horario = False
+            self.guardar_datos_usuario()
 
-    def advertencia_borrar_datos_horario(self):
+    def advertencia_borrar_datos_horario(self, opcional = "",*args):
         dialogo_advertencia = MDDialog(
             MDDialogIcon(
                 icon="alert", theme_icon_color="Custom", icon_color=self.AMARILLO
             ),
             MDDialogHeadlineText(text="¿Confirmar?"),
             MDDialogSupportingText(
-                text="¡Se quitaran todas las materias de la lista!",
+                text=f"¡Se quitaran todas las materias de la lista!{opcional}",
                 halign="left",
             ),
             size_hint_x=0.9,
@@ -5349,7 +4631,7 @@ class Widget_Principal(ScreenManager):
     def guardar_datos_horario(self):
         try:
             Logger.info("Guardando datos de horario")
-            with open(join(RUTA_DATOS, f"datos_usuario_{self.texto_especialidad.replace(".","")}{self.texto_mencion}.json"), "w",
+            with open(join(RUTA_DATOS, f"datos_usuario_{self.texto_especialidad.replace('.','')}{self.texto_mencion}.json"), "w",
             encoding="utf-8") as archivo:
                 json.dump(self.datos_usuario_horario, archivo, indent = 4)
                 Logger.debug("Archivo guardado correctamente")
@@ -5503,6 +4785,8 @@ class MainApp(MDApp):
         self.widget_principal = Widget_Principal()
         self.theme_cls.theme_style_switch_animation = True
         self.theme_cls.primary_palette = "Blue"
+        self.title = "Unexum"
+        self.icon = join("assets","Icono App sin fondo.png")
 
         if platform == "android":
             # Android Shared Storage

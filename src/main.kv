@@ -71,7 +71,6 @@
             size_hint: 1, None
             height: dp(14)
 
-
 <Seccion>:
     elevation_level: 1
     shadow_softness: 1
@@ -107,6 +106,7 @@
         Rectangle:
             pos: self.pos
             size: self.size
+
 <RVHorario>:
     viewclass: 'SelectableLabelHorario'
     size_hint_y: None
@@ -135,33 +135,83 @@
     size_hint: None,None
     radius: dp(8)
 
-#Widgets de indice
-<BoxConRippleIndice>:
-    size_hint: 1,None
-    height: dp(64)
-    md_bg_color: app.root.color_fondo_claro
+#Widget separador semestre:
+<SemestreIndice>:
+    md_bg_color: root.color_fondo
+    size_hint_x: 1
+    size_hint_y: None
+    height: dp(45)
+    MDLabel:
+        text: f"SEMESTRE {root.texto_semestre}"
+        bold: True
+        halign:"center"
 
+<SemestrePensum>:
+    md_bg_color: root.color_fondo
+    size_hint_x: 1
+    size_hint_y: None
+    height: dp(45)
+    MDLabel:
+        text: f"SEMESTRE {root.texto_semestre}"
+        bold: True
+        halign:"center"
+
+
+#Widgets de indice
 <LabelListaIndice>:
     theme_line_height: "Custom"
     line_height:1
     pos_hint:{"x": 0.05}
     markup:True
     size_hint_x:0.7
-<CampoTextoListaIndice>:
-    input_type:"number"
-    write_tab:False
-    mode:"filled"
-    size_hint: 0.17,None
-    multiline:False
-    pos_hint:{"center_x": 0.85, "center_y": 0.5}
-    use_bubble: False
-    on_text_validate: app.root.siguiente_campo_notas(self)
 
+<CampoTextoListaIndice>:
+    input_type: "number"
+    write_tab: False
+    mode: "filled"
+    size_hint: 0.17,None
+    multiline: False
+    pos_hint: {"center_x": 0.85, "center_y": 0.5}
+    use_bubble: False
+
+<BoxConRippleIndice>:
+    size_hint: 1,None
+    height: dp(64)
+    canvas.before:
+        Color:
+            rgba: root.color_fondo
+        Rectangle:
+            pos: 0, 0
+            size: self.size
+    LabelListaIndice:
+        text: f"[b]{root.nombre_materia}[/b]\n[size=14sp]{root.uc} U.C[/size]"
+
+    CampoTextoListaIndice:
+        id: f"{root.codigo_materia}WCT"
+        text: str(root.nota).replace("''", "")
+        max_height: dp(35)
+        height: dp(35)
+        on_focus: root.on_text(self.text, self.focus, self)
+                
 #Widgets de pensum
 <BoxConRipplePensum>:
     size_hint: 1,None
     height: dp(80)
-    
+    canvas.before:
+        Color:
+            rgba: root.color_fondo
+        Rectangle:
+            pos: 0, 0
+            size: self.size
+
+    LabelListaPensum:
+        markup: True
+        text: root.texto_label
+
+    CheckBoxPensum:
+        active: root.active
+        on_release: root.aprobar_materia(self.active, root.codigo_materia, self)
+
 <LabelListaPensum>:
     theme_line_height: "Custom"
     line_height: 1
@@ -171,8 +221,8 @@
     outline_color:[0,0,0,1]
     outline_width: app.root.borde_letra_fino
 <CheckBoxPensum>:
-    color_inactive:"gray"
-    color_active:app.root.AZUL_OSCURO
+    color_inactive: "gray"
+    color_active: app.root.AZUL_OSCURO
     pos_hint:{"center_x": 0.9, "center_y": 0.5}
 
 #Pantallas:
@@ -683,6 +733,7 @@
                 PopMatrix
         
         MDIconButton:
+            id: close_button
             icon: "close"
             style: "filled"
             theme_icon_color: "Custom"
@@ -736,25 +787,7 @@
                     font_style: "Body"
                     role: "small"
                     text: "Seleccionar las electivas para Índice y Pensum"
-            MDListItem:
-                id: item_velocidad_carga
-                on_press: if app.root.menu_velocidad_carga.caller==None: app.root.menu_velocidad_carga.caller=self
-                on_release: app.root.menu_velocidad_carga.open()
-                divider: True
-                MDListItemLeadingIcon:
-                    icon:"fast-forward"
-                    theme_icon_color: "Custom"
-                    icon_color: app.root.NARANJA_CLARO
-                MDListItemHeadlineText:
-                    text: "Velocidad De Carga De Datos"
-                MDListItemSupportingText:
-                    markup: True
-                    font_style: "Body"
-                    role: "small"
-                    text: 'Ajustar según el rendimiento del dispositivo'
-                MDListItemTertiaryText:
-                    markup: True
-                    text: f"[b]Actual:[/b] {root.tiempo_espera}"
+
             MDListItem:
                 on_release: app.root.advertencia_cambio_especialidad()
                 divider: True
@@ -1199,7 +1232,7 @@
                 style: "filled"
                 theme_bg_color: "Custom"
                 md_bg_color: "#4EC38F"
-                pos_hint: {'center_x': 0.5,"center_y": 0.5}
+                pos_hint: {'center_x': 0.3,"center_y": 0.55}
                 on_release: app.root.accion_boton_crear_horario()
                 MDButtonText:
                     markup: True
@@ -1209,6 +1242,32 @@
                     theme_icon_color:"Custom"
                     icon_color:"black"
 
+            MDCheckbox:
+                id: mostrar_profesores
+                active: True
+                color_inactive:"gray"
+                color_active: app.root.CYAN
+                pos_hint: {'x': 0.6, "center_y": 0.8}
+
+            MDLabel:
+                text: "Mostrar profesores"
+                pos_hint: {'x': 0.7, "center_y": 0.8}
+                theme_font_size: "Custom"
+                font_size: "11sp"
+
+
+            MDCheckbox:
+                id: mostrar_aulas
+                color_inactive:"gray"
+                active: True
+                color_active: app.root.CYAN
+                pos_hint: {'x': 0.6, "center_y": 0.3}
+
+            MDLabel:
+                text: "Mostrar aulas"
+                pos_hint: {'x': 0.7, "center_y": 0.3}
+                theme_font_size: "Custom"
+                font_size: "11sp"
                     
         MDNavigationBar:
             on_switch_tabs: app.root.on_switch_tabs(*args)
@@ -1605,12 +1664,6 @@
                     text: "[b]Unexum[/b]" 
                 
                 MDTopAppBarTrailingButtonContainer:
-                    MDCircularProgressIndicator:
-                        id: indicador_progreso_carga
-                        size_hint: None,None
-                        size: "14dp","14dp"
-                        pos_hint: {"center_y":0.5,"center_x":0}
-                        color: root.NARANJA_CLARO
                         
                     MDActionTopAppBarButton:
                         icon:"help-circle"
@@ -1949,7 +2002,6 @@
                                 size_hint_x: None
                                 width: self.height
                                 pos_hint: {"center_x": 0.5,"center_y": 0.5}
-
             
             MDBoxLayout:
                 orientation: "vertical"
@@ -1957,22 +2009,17 @@
                 theme_bg_color: "Custom"
                 md_bg_color: root.color_fondo
 
-                CustomMDScrollView:
-                    do_scroll_x: False
-                    id: scroll_notas
-                    bar_width: root.width*0.04
-                    scroll_type: ["bars","content"]
-    
-                    MDGridLayout:
-                        id: menu_notas_materias
+                RVIndice:
+                    id: rv_indice
+                    key_viewclass: "viewclass"
+                    data: []
+                    RecycleBoxLayout:
+                        default_size: None, dp(64)
+                        default_size_hint: 1, None
                         size_hint_y: None
-                        height: (1+dp(64))*root.materias_totales+10*dp(45)
-                        spacing: [0,1]
-                        cols: 1
-                        size_hint_x: 1
-                        theme_bg_color: "Custom"
-                        md_bg_color: root.color_fondo
-            
+                        height: self.minimum_height
+                        orientation: "vertical"
+
             MDNavigationBar:
                 on_switch_tabs: root.on_switch_tabs(*args)
                 id: navigationbarindice
@@ -2151,21 +2198,17 @@
                 theme_bg_color: "Custom"
                 md_bg_color: root.color_fondo
 
-                CustomMDScrollView:
-                    do_scroll_x: False
-                    id: scroll_pensum
-                    bar_width:root.width*0.04
-                    scroll_type: ["bars","content"]
-    
-                    MDGridLayout:
-                        id: menu_pensum_materias
+                RVPensum:
+                    id: rv_pensum
+                    key_viewclass: "viewclass"
+                    data: []
+                    RecycleBoxLayout:
+                        default_size: None, dp(80)
+                        default_size_hint: 1, None
                         size_hint_y: None
-                        height: (1+dp(80))*root.materias_totales+(10*dp(45))
-                        spacing: [0,1]
-                        cols: 1
-                        size_hint_x: 1
-                        theme_bg_color: "Custom"
-                        md_bg_color: root.color_fondo  
+                        height: self.minimum_height
+                        orientation: "vertical"
+
 
             MDNavigationBar:
                 on_switch_tabs: root.on_switch_tabs(*args)

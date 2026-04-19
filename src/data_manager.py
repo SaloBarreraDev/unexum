@@ -67,7 +67,9 @@ def cargar_datos(self):
                     materia["inscrita"],
                     [Evaluacion(e["identificador"], e["nota"], e["ponderacion"], e["extra"]) for e in materia["evaluaciones"]],
                     materia["porcentual"],
-                    materia["pre3"])
+                    materia["pre3"],
+                    materia["electiva"],
+                    materia["costo"])
         Logger.info("Finalizó el cargado de materias desde archivo json")
         return Materia.materias[:]
 
@@ -146,34 +148,34 @@ def cargar_datos_defecto(especialidad, mencion = "No Aplica"):
         Materia("VIII","II1323","Mantenimiento Industrial",3,1,0,3,"''",False,False,"II1114","''","''")
         Materia("VIII","II1332","Trabajo Especial I",2,0,0,2,"''",False,False,"II1313","II1213","''")
         Materia("VIII","II2213","Higiene Y Seguridad Industrial",3,1,0,3,"''",False,False,"II2113","''","''")
-        Materia("VIII","Según Materia I","Electiva Profesional I",3,0,0,3,"''",False,False,"''","''","''")
+        Materia("VIII","Según Materia I","Electiva Profesional I",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
         #Semestre IX
         Materia("IX","II1393","Trabajo Especial II",3,0,0,3,"''",False,False,"II1332","''","''")
         Materia("IX","II2333","Instalaciones Industriales",3,0,0,3,"''",False,False,"II1323","''","''")
         Materia("IX","II3263","Teoría De Decisiones",3,1,0,3,"''",False,False,"II3223","''","''")
         Materia("IX","II3243","Proyectos Industriales",3,1,0,3,"''",False,False,"II3223","''","''")
         Materia("IX","II3313","Gerencia De Recursos Humanos",3,0,0,3,"''",False,False,"II1332","''","''")
-        Materia("IX","Según Materia II","Electiva Profesional II",3,0,0,3,"''",False,False,"''","''","''")
+        Materia("IX","Según Materia II","Electiva Profesional II",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
         #Semestre X
         Materia("X","II24216","Entrenamiento Industrial",40,0,0,16,"''",False,False,"Aprobar todo el pensum","''","''")
         
         #Seccion producción
-        Materia("Sección Producción","II1363","Diseño De Experimentos",3,0,0,3,"''",False,False,"II1213","''","''")
-        Materia("Sección Producción","II1353","Gerencia De Producción",3,0,0,3,"''",False,False,"II1313","''","''")
-        Materia("Sección Producción","II1383","Logística Industrial",3,0,0,3,"''",False,False,"II1313","''","''")
-        Materia("Sección Producción","II1373","Gestión Y Aseguramiento De La Calidad",3,0,0,3,"''",False,False,"II1213","''","''")
+        Materia("Sección Producción","II1363","Diseño De Experimentos",3,0,0,3,"''",False,False,"II1213","''","''",electiva = True, costo = 1)
+        Materia("Sección Producción","II1353","Gerencia De Producción",3,0,0,3,"''",False,False,"II1313","''","''",electiva = True, costo = 1)
+        Materia("Sección Producción","II1383","Logística Industrial",3,0,0,3,"''",False,False,"II1313","''","''",electiva = True, costo = 1)
+        Materia("Sección Producción","II1373","Gestión Y Aseguramiento De La Calidad",3,0,0,3,"''",False,False,"II1213","''","''",electiva = True, costo = 1)
         #Sección Tecnología y entrenamiento industrial
-        Materia("Sección Tecnología y Entrenamiento Industrial","II2133","Tópicos De Ingeniería De Métodos",3,0,0,3,"''",False,False,"II3223","''","''")
-        Materia("Sección Tecnología y Entrenamiento Industrial","II2223","Elaboración De Programas De Higiene Y Seguridad",3,0,0,3,"''",False,False,"II2213","''","''")
-        Materia("Sección Tecnología y Entrenamiento Industrial","II2233","Higiene Industrial E Ingeniería Sanitaria",3,0,0,3,"''",False,False,"II2213","''","''")
-        Materia("Sección Tecnología y Entrenamiento Industrial","II2243","Gestión Ambiental",3,0,0,3,"''",False,False,"II2213","''","''")
+        Materia("Sección Tecnología y Entrenamiento Industrial","II2133","Tópicos De Ingeniería De Métodos",3,0,0,3,"''",False,False,"II3223","''","''",electiva = True, costo = 1)
+        Materia("Sección Tecnología y Entrenamiento Industrial","II2223","Elaboración De Programas De Higiene Y Seguridad",3,0,0,3,"''",False,False,"II2213","''","''",electiva = True, costo = 1)
+        Materia("Sección Tecnología y Entrenamiento Industrial","II2233","Higiene Industrial E Ingeniería Sanitaria",3,0,0,3,"''",False,False,"II2213","''","''",electiva = True, costo = 1)
+        Materia("Sección Tecnología y Entrenamiento Industrial","II2243","Gestión Ambiental",3,0,0,3,"''",False,False,"II2213","''","''",electiva = True, costo = 1)
         #Sección Administración
-        Materia("Sección Administración","II3123","Probabilidad Y Estadística Aplicada",3,0,0,3,"''",False,False,"II1213","''","''")
-        Materia("Sección Administración","II3253","Finanzas Empresariales",3,0,0,3,"''",False,False,"II3223","''","''")
-        Materia("Sección Administración","II3323","Gerencia Y Productividad",3,0,0,3,"''",False,False,"II1213","II1313","''")
-        Materia("Sección Administración","II3333","Investigación De Mercado",3,0,0,3,"''",False,False,"II3223","''","''")
+        Materia("Sección Administración","II3123","Probabilidad Y Estadística Aplicada",3,0,0,3,"''",False,False,"II1213","''","''",electiva = True, costo = 1)
+        Materia("Sección Administración","II3253","Finanzas Empresariales",3,0,0,3,"''",False,False,"II3223","''","''",electiva = True, costo = 1)
+        Materia("Sección Administración","II3323","Gerencia Y Productividad",3,0,0,3,"''",False,False,"II1213","II1313","''",electiva = True, costo = 1)
+        Materia("Sección Administración","II3333","Investigación De Mercado",3,0,0,3,"''",False,False,"II3223","''","''",electiva = True, costo = 1)
         #Entrenamiento Industrial opcional
-        Materia("Opcional","II2418","Entrenamiento Industrial Opcional",0,0,0,8,"''",False,False,"II1213","II1313","''", pre3 = "II3214")
+        Materia("Opcional","II2418","Entrenamiento Industrial Opcional",0,0,0,8,"''",False,False,"II1213","II1313","''", pre3 = "II3214",electiva = True, costo = 2)
         
     elif especialidad=="Ing. Electrónica" and mencion=="Comunicaciones":
         #Semestre I
@@ -240,32 +242,32 @@ def cargar_datos_defecto(especialidad, mencion = "No Aplica"):
         Materia("IX","EL2333","Telefonía II",3,0,0,3,"''",False,False,"EL2313","''","''")
         Materia("IX","EL5123","Trabajo Especial II",3,0,0,3,"''",False,False,"EL5112","''","''")
         Materia("IX","II1033","Planificación Y Control De La Producción",3,1,0,3,"''",False,False,"II3043","''","''")
-        Materia("IX","Según Materia I","Electiva Profesional I",0,0,0,3,"''",False,False,"''","''","''")
-        Materia("IX","Según Materia II","Electiva Profesional II",0,0,0,3,"''",False,False,"''","''","''")
-        Materia("IX","Según Materia III","Electiva Profesional III",0,0,0,3,"''",False,False,"''","''","''")
+        Materia("IX","Según Materia I","Electiva Profesional I",0,0,0,3,"''",False,False,"''","''","''",electiva = True)
+        Materia("IX","Según Materia II","Electiva Profesional II",0,0,0,3,"''",False,False,"''","''","''",electiva = True)
+        Materia("IX","Según Materia III","Electiva Profesional III",0,0,0,3,"''",False,False,"''","''","''",electiva = True)
         #Semestre X
         Materia("X","EL52216","Entrenamiento Industrial",40,0,0,16,"''",False,False,"Aprobar todo el pensum","''","''")
         
         #Electivas
-        Materia("*Electiva","EL1623","Análisis De Circuitos Electrónicos Asistido Por Computador",3,0,0,3,"''",False,False,"EL1181","''","''")
-        Materia("*Electiva","EL1633","Tópicos Especiales En Electrónica",3,0,0,3,"''",False,False,"EL1313","''","''")
-        Materia("*Electiva","EL1643","Electrónica Industrial I",3,0,0,3,"''",False,False,"EL1313","''","''")
-        Materia("*Electiva","EL2633","Comunicaciones Vía Satélite",3,1,0,3,"''",False,False,"EL2124","EL2213","''")
-        Materia("*Electiva","EL2643","Análisis De Circuitos Electrónicos Para Comunicaciones",3,0,0,3,"''",False,False,"EL1313","EL2124","''")
-        Materia("*Electiva","EL2653","Televisión",3,0,0,3,"''",False,False,"EL2124","''","''")
-        Materia("*Electiva","EL2673","Ingeniería De Transmisión",3,0,0,3,"''",False,False,"EL2124","''","''")
-        Materia("*Electiva","EL2683","Telefonía Móvil Celular",3,0,0,3,"''",False,False,"EL2273","EL2313","''")
-        Materia("*Electiva","EL2693","Tópicos Especiales En Comunicaciones",3,0,0,3,"''",False,False,"EL2153","''","''")
-        Materia("*Electiva","EL3624","Instrumentación Industrial",3,0,2,4,"''",False,False,"EL3163","''","''")
-        Materia("*Electiva","EL3662","Controladores Lógicos Programables",1,0,3,2,"''",False,False,"EL3234","EL3121","''")
-        Materia("*Electiva","EL3663","Controladores Lógicos Programables (PLC)",2,0,2,3,"''",False,False,"EL3234","EL3121","''")
-        Materia("*Electiva","EL4633","Robótica",2,0,2,3,"''",False,False,"EL3163","EL3234","''")
-        Materia("*Electiva","EL4653","Algoritmo Genético Y Sistema De Entrenamiento",3,0,0,3,"''",False,False,"EL3221","EB1312","''")
-        Materia("*Electiva","EL4673","Arquitectura Del Computador",3,0,0,3,"''",False,False,"EL3234","''","''")
-        Materia("*Electiva","EL4683","Diseño De Sistemas De Computación",3,1,0,3,"''",False,False,"EL3234","''","''")
-        Materia("*Electiva","EL4693","Programación II",2,2,0,3,"''",False,False,"EB1312","''","''")
+        Materia("*Electiva","EL1623","Análisis De Circuitos Electrónicos Asistido Por Computador",3,0,0,3,"''",False,False,"EL1181","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL1633","Tópicos Especiales En Electrónica",3,0,0,3,"''",False,False,"EL1313","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL1643","Electrónica Industrial I",3,0,0,3,"''",False,False,"EL1313","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL2633","Comunicaciones Vía Satélite",3,1,0,3,"''",False,False,"EL2124","EL2213","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL2643","Análisis De Circuitos Electrónicos Para Comunicaciones",3,0,0,3,"''",False,False,"EL1313","EL2124","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL2653","Televisión",3,0,0,3,"''",False,False,"EL2124","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL2673","Ingeniería De Transmisión",3,0,0,3,"''",False,False,"EL2124","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL2683","Telefonía Móvil Celular",3,0,0,3,"''",False,False,"EL2273","EL2313","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL2693","Tópicos Especiales En Comunicaciones",3,0,0,3,"''",False,False,"EL2153","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL3624","Instrumentación Industrial",3,0,2,4,"''",False,False,"EL3163","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL3662","Controladores Lógicos Programables",1,0,3,2,"''",False,False,"EL3234","EL3121","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL3663","Controladores Lógicos Programables (PLC)",2,0,2,3,"''",False,False,"EL3234","EL3121","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL4633","Robótica",2,0,2,3,"''",False,False,"EL3163","EL3234","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL4653","Algoritmo Genético Y Sistema De Entrenamiento",3,0,0,3,"''",False,False,"EL3221","EB1312","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL4673","Arquitectura Del Computador",3,0,0,3,"''",False,False,"EL3234","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL4683","Diseño De Sistemas De Computación",3,1,0,3,"''",False,False,"EL3234","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL4693","Programación II",2,2,0,3,"''",False,False,"EB1312","''","''",electiva = True, costo = 1)
         #Entrenamiento Industrial opcional
-        Materia("Opcional","EL5218","Entrenamiento Industrial Opcional",0,0,0,8,"''",False,False,"EL1181","EL3221","''")
+        Materia("Opcional","EL5218","Entrenamiento Industrial Opcional",0,0,0,8,"''",False,False,"EL1181","EL3221","''",electiva = True, costo = 2)
     
     
     elif especialidad=="Ing. Electrónica" and mencion=="Computación":
@@ -329,37 +331,37 @@ def cargar_datos_defecto(especialidad, mencion = "No Aplica"):
         Materia("VIII","EL4333","Diseño De Sistemas De Computación",3,1,0,3,"''",False,False,"EL3234","''","''")
         Materia("VIII","EL5112","Trabajo Especial I",2,0,0,2,"''",False,False,"EL3234","EL4153","''")
         Materia("VIII","II3023","Ingeniería Económica",3,0,0,3,"''",False,False,"EB1134","''","''")
-        Materia("VIII","Según Materia I","Electiva Profesional I",3,0,0,3,"''",False,False,"''","''","''")
+        Materia("VIII","Según Materia I","Electiva Profesional I",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
         #Semestre IX
         Materia("IX","EL4341","Laboratorio Diseño De Sistemas De Computación",0,0,3,1,"''",False,False,"EL4333","''","''")
         Materia("IX","EL4373","Arquitectura Del Computador",3,0,0,3,"''",False,False,"EL3234","''","''")
         Materia("IX","EL5123","Trabajo Especial II",3,0,0,3,"''",False,False,"EL5112","''","''")
         Materia("IX","II1033","Planificación Y Control De La Producción",3,1,0,3,"''",False,False,"II3043","''","''")
-        Materia("IX","Según Materia II","Electiva Profesional II",3,0,0,3,"''",False,False,"''","''","''")
-        Materia("IX","Según Materia III","Electiva Profesional III",3,0,0,3,"''",False,False,"''","''","''")
+        Materia("IX","Según Materia II","Electiva Profesional II",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
+        Materia("IX","Según Materia III","Electiva Profesional III",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
         #Semestre X
         Materia("X","EL52216","Entrenamiento Industrial",40,0,0,16,"''",False,False,"Aprobar todo el pensum","''","''")
 
         #Electivas
-        Materia("*Electiva","EL1623","Análisis De Circuitos Electrónicos Asistido Por Computador",3,0,0,3,"''",False,False,"EL1181","''","''")
-        Materia("*Electiva","EL1633","Tópicos Especiales En Electrónica",3,0,0,3,"''",False,False,"EL1313","''","''")
-        Materia("*Electiva","EL1643","Electrónica Industrial I",3,0,0,3,"''",False,False,"EL1313","''","''")
-        Materia("*Electiva","EL2643","Análisis Circuitos Electrónicos Para Comunicaciones",3,0,0,3,"''",False,False,"EL1313","EL2124","''")
-        Materia("*Electiva","EL2653","Televisión",3,0,0,3,"''",False,False,"EL2124","''","''")
-        Materia("*Electiva","EL2673","Ingeniería De Transmisión",3,0,0,3,"''",False,False,"EL2124","''","''")
-        Materia("*Electiva","EL3624","Instrumentación Industrial",3,0,2,4,"''",False,False,"EL3163","''","''")
-        Materia("*Electiva","EL3653","Control De Sistemas a Eventos Discretos",3,1,0,3,"''",False,False,"EL3163","''","''")
-        Materia("*Electiva","EL3662","Controladores Lógicos Programables",1,0,3,2,"''",False,False,"EL3234","EL3121","''")
-        Materia("*Electiva","EL3663","Controladores Lógicos Programables (PLC)",2,0,2,3,"''",False,False,"EL3234","EL3121","''")
-        Materia("*Electiva","EL3683","Sistemas De Control En Tiempo Continuo",3,1,0,3,"''",False,False,"EL3163","''","''")
-        Materia("*Electiva","EL3693","Sistemas De Control En Tiempo Discreto",3,1,0,3,"''",False,False,"EL3163","EL3234","''")
-        Materia("*Electiva","EL4603","Tópicos Especiales En Computación",3,0,0,3,"''",False,False,"EL4333","''","''")
-        Materia("*Electiva","EL4633","Robótica",2,0,2,3,"''",False,False,"EL3163","EL3234","''")
-        Materia("*Electiva","EL4643","Diseño De Software",2,2,0,3,"''",False,False,"EL4143","''","''")
-        Materia("*Electiva","EL4653","Algoritmo Genético Y Sistema De Entrenamiento",3,0,0,3,"''",False,False,"EL3221","EB1312","''")
+        Materia("*Electiva","EL1623","Análisis De Circuitos Electrónicos Asistido Por Computador",3,0,0,3,"''",False,False,"EL1181","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL1633","Tópicos Especiales En Electrónica",3,0,0,3,"''",False,False,"EL1313","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL1643","Electrónica Industrial I",3,0,0,3,"''",False,False,"EL1313","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL2643","Análisis Circuitos Electrónicos Para Comunicaciones",3,0,0,3,"''",False,False,"EL1313","EL2124","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL2653","Televisión",3,0,0,3,"''",False,False,"EL2124","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL2673","Ingeniería De Transmisión",3,0,0,3,"''",False,False,"EL2124","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL3624","Instrumentación Industrial",3,0,2,4,"''",False,False,"EL3163","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL3653","Control De Sistemas a Eventos Discretos",3,1,0,3,"''",False,False,"EL3163","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL3662","Controladores Lógicos Programables",1,0,3,2,"''",False,False,"EL3234","EL3121","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL3663","Controladores Lógicos Programables (PLC)",2,0,2,3,"''",False,False,"EL3234","EL3121","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL3683","Sistemas De Control En Tiempo Continuo",3,1,0,3,"''",False,False,"EL3163","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL3693","Sistemas De Control En Tiempo Discreto",3,1,0,3,"''",False,False,"EL3163","EL3234","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL4603","Tópicos Especiales En Computación",3,0,0,3,"''",False,False,"EL4333","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL4633","Robótica",2,0,2,3,"''",False,False,"EL3163","EL3234","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL4643","Diseño De Software",2,2,0,3,"''",False,False,"EL4143","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL4653","Algoritmo Genético Y Sistema De Entrenamiento",3,0,0,3,"''",False,False,"EL3221","EB1312","''",electiva = True, costo = 1)
         
         #Entrenamiento Industrial opcional
-        Materia("Opcional","EL5218","Entrenamiento Industrial Opcional",0,0,0,8,"''",False,False,"EL1181","EL3221","''")
+        Materia("Opcional","EL5218","Entrenamiento Industrial Opcional",0,0,0,8,"''",False,False,"EL1181","EL3221","''",electiva = True, costo = 2)
     
     elif especialidad=="Ing. Electrónica" and mencion=="Control":
         #Semestre I
@@ -421,36 +423,36 @@ def cargar_datos_defecto(especialidad, mencion = "No Aplica"):
         Materia("VIII","EL3193","Sistemas De Control En Tiempo Discreto",3,1,0,3,"''",False,False,"EL3173","EL3234","''")
         Materia("VIII","EL5112","Trabajo Especial I",2,0,0,2,"''",False,False,"EL3234","EL1223","''")
         Materia("VIII","II3023","Ingeniería Económica",3,0,0,3,"''",False,False,"EB1134","''","''")
-        Materia("VIII","Según Materia I","Electiva Profesional I",0,0,0,3,"''",False,False,"''","''","''")
+        Materia("VIII","Según Materia I","Electiva Profesional I",0,0,0,3,"''",False,False,"''","''","''",electiva = True)
         #Semestre IX
         Materia("IX","EL1252","Laboratorio De Electrónica Industrial",1,0,3,2,"''",False,False,"''","''","EL1243")
         Materia("IX","EL3324","Instrumentación Industrial",3,0,2,4,"''",False,False,"EL3163","''","''")
         Materia("IX","EL5123","Trabajo Especial II",3,0,0,3,"''",False,False,"EL5112","''","''")
         Materia("IX","II1033","Planificación Y Control De La Producción",3,1,0,3,"''",False,False,"II3043","''","''")
-        Materia("IX","Según Materia II","Electiva Profesional II",0,0,0,3,"''",False,False,"''","''","''")
-        Materia("IX","Según Materia III","Electiva Profesional III",0,0,0,3,"''",False,False,"''","''","''")
+        Materia("IX","Según Materia II","Electiva Profesional II",0,0,0,3,"''",False,False,"''","''","''",electiva = True)
+        Materia("IX","Según Materia III","Electiva Profesional III",0,0,0,3,"''",False,False,"''","''","''",electiva = True)
         #Semestre X
         Materia("X","EL52216","Entrenamiento Industrial",40,0,0,16,"''",False,False,"Aprobar todo el pensum","''","''")
             
         #Electivas
-        Materia("*Electiva","EL1623","Análisis De Circuitos Electrónicos Asistido Por Computador",3,0,0,3,"''",False,False,"EL1181","''","''")
-        Materia("*Electiva","EL1633","Tópicos Especiales En Electrónica",3,0,0,3,"''",False,False,"EL1313","''","''")
-        Materia("*Electiva","EL2653","Televisión",3,0,0,3,"''",False,False,"EL2124","''","''")
-        Materia("*Electiva","EL2664","Redes De Computadoras",3,1,0,3,"''",False,False,"EL2124","EL3221","''")
-        Materia("*Electiva","EL2643","Análisis Circuitos Eléctricos Para Comunicaciones",3,0,0,3,"''",False,False,"EL1313","EL2124","''")
-        Materia("*Electiva","EL2673","Ingeniería De Transmisión",3,0,0,3,"''",False,False,"EL2124","''","''")
-        Materia("*Electiva","EL3613","Tópicos Especiales En Control",3,0,0,3,"''",False,False,"EL3193","''","''")
-        Materia("*Electiva","EL3653","Control De Sistemas a Eventos Discretos",3,1,0,3,"''",False,False,"EL3163","''","''")
-        Materia("*Electiva","EL3662","Controladores Lógicos Programables",1,0,3,2,"''",False,False,"EL3234","EL3121","''")
-        Materia("*Electiva","EL3663","Controladores Lógicos Programables (PLC)",2,0,2,3,"''",False,False,"EL3234","EL3121","''")
-        Materia("*Electiva","EL4633","Robótica",2,0,2,3,"''",False,False,"EL3163","EL3234","''")
-        Materia("*Electiva","EL4653","Algoritmo Genético Y Sistema De Entrenamiento",3,0,0,3,"''",False,False,"EL3221","EB1312","''")
-        Materia("*Electiva","EL4673","Arquitectura Del Computador",3,0,0,3,"''",False,False,"EL3234","''","''")
-        Materia("*Electiva","EL4683","Diseño De Sistemas De Computación",3,1,0,3,"''",False,False,"EL3234","''","''")
-        Materia("*Electiva","EL4693","Programación II",2,2,0,3,"''",False,False,"EB1312","''","''")
+        Materia("*Electiva","EL1623","Análisis De Circuitos Electrónicos Asistido Por Computador",3,0,0,3,"''",False,False,"EL1181","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL1633","Tópicos Especiales En Electrónica",3,0,0,3,"''",False,False,"EL1313","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL2653","Televisión",3,0,0,3,"''",False,False,"EL2124","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL2664","Redes De Computadoras",3,1,0,3,"''",False,False,"EL2124","EL3221","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL2643","Análisis Circuitos Eléctricos Para Comunicaciones",3,0,0,3,"''",False,False,"EL1313","EL2124","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL2673","Ingeniería De Transmisión",3,0,0,3,"''",False,False,"EL2124","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL3613","Tópicos Especiales En Control",3,0,0,3,"''",False,False,"EL3193","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL3653","Control De Sistemas a Eventos Discretos",3,1,0,3,"''",False,False,"EL3163","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL3662","Controladores Lógicos Programables",1,0,3,2,"''",False,False,"EL3234","EL3121","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL3663","Controladores Lógicos Programables (PLC)",2,0,2,3,"''",False,False,"EL3234","EL3121","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL4633","Robótica",2,0,2,3,"''",False,False,"EL3163","EL3234","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL4653","Algoritmo Genético Y Sistema De Entrenamiento",3,0,0,3,"''",False,False,"EL3221","EB1312","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL4673","Arquitectura Del Computador",3,0,0,3,"''",False,False,"EL3234","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL4683","Diseño De Sistemas De Computación",3,1,0,3,"''",False,False,"EL3234","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","EL4693","Programación II",2,2,0,3,"''",False,False,"EB1312","''","''",electiva = True, costo = 1)
     
         #Entrenamiento Industrial opcional
-        Materia("Opcional","EL5218","Entrenamiento Industrial Opcional",0,0,0,8,"''",False,False,"EL1181","EL3221","''")
+        Materia("Opcional","EL5218","Entrenamiento Industrial Opcional",0,0,0,8,"''",False,False,"EL1181","EL3221","''",electiva = True, costo = 2)
     
     elif especialidad=="Ing. Eléctrica":
         
@@ -511,30 +513,30 @@ def cargar_datos_defecto(especialidad, mencion = "No Aplica"):
         Materia("VIII","IE6314","Controles Eléctricos",3,0,3,4,"''",False,False,"IE6142","''","''")
         Materia("VIII","IE7313","Protección De Sistemas Eléctricos De Potencia",3,0,0,3,"''",False,False,"IE7213","''","''")
         Materia("VIII","IE8212","Trabajo Especial I",2,0,0,2,"''",False,False,"IE7213","IE7613","''")
-        Materia("VIII","Según Materia I","Electiva Profesional I",3,0,0,3,"''",False,False,"''","''","''")
-        Materia("VIII","Según Materia II","Electiva Profesional II",3,0,0,3,"''",False,False,"''","''","''")
+        Materia("VIII","Según Materia I","Electiva Profesional I",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
+        Materia("VIII","Según Materia II","Electiva Profesional II",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
         #Semestre IX
         Materia("IX","IE7321","Lab. Protección Sistemas De Potencia",0,0,3,1,"''",False,False,"IE7313","''","''")
         Materia("IX","IE7413","Plantas Eléctricas Y Subestaciones",3,1,0,3,"''",False,False,"IE6134","IE7313","''")
         Materia("IX","IE8223","Trabajo Especial II",3,0,0,3,"''",False,False,"IE8212","''","''")
-        Materia("IX","Según Materia III","Electiva Profesional III",3,0,0,3,"''",False,False,"''","''","''")
-        Materia("IX","Según Materia IV","Electiva Profesional IV",3,0,0,3,"''",False,False,"''","''","''")
+        Materia("IX","Según Materia III","Electiva Profesional III",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
+        Materia("IX","Según Materia IV","Electiva Profesional IV",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
         #Semestre X
         Materia("X","IE81116","Entrenamiento Industrial",40,0,0,16,"''",False,False,"Aprobar todo el pensum","''","''")
         #Electivas
-        Materia("*Electiva","EL3034","Instrumentación Industrial",3,0,3,4,"''",False,False,"EL1054","''","''")
-        Materia("*Electiva","IE7753","Controles Eléctricos II",2,0,3,3,"''",False,False,"IE6314","''","''")
-        Materia("*Electiva","IE7713","Transmisión Energía Eléctrica II",3,0,0,3,"''",False,False,"IE7113","''","''")
-        Materia("*Electiva","IE7723","Análisis Sistemas Eléctricos De Potencia II",3,1,0,3,"''",False,False,"IE7213","''","''")
-        Materia("*Electiva","IE7733","Técnicas De Alta Tensión",2,0,3,3,"''",False,False,"IE6214","IE5313","''")
-        Materia("*Electiva","IE7763","Control Y Operación De Sistemas De Potencia",3,1,0,3,"''",False,False,"IE6134","''","''")
-        Materia("*Electiva","IE7743","Planificación Sistemas De Potencia",3,0,0,3,"''",False,False,"IE7213","''","''")
-        Materia("*Electiva Producción","II1033","Planificación Y Control De La Producción",3,1,0,3,"''",False,False,"II3043","''","''")
-        Materia("*Electiva Producción","II1053","Control De Calidad",3,0,0,3,"''",False,False,"II3043","''","''")
-        Materia("*Electiva Producción","II3013","Ingeniería De Costos",3,1,0,3,"''",False,False,"II3043","''","''")
-        Materia("*Electiva Producción","II1073","Diseño De Experimentos",3,0,0,3,"''",False,False,"II1053","''","''")
+        Materia("*Electiva","EL3034","Instrumentación Industrial",3,0,3,4,"''",False,False,"EL1054","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","IE7753","Controles Eléctricos II",2,0,3,3,"''",False,False,"IE6314","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","IE7713","Transmisión Energía Eléctrica II",3,0,0,3,"''",False,False,"IE7113","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","IE7723","Análisis Sistemas Eléctricos De Potencia II",3,1,0,3,"''",False,False,"IE7213","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","IE7733","Técnicas De Alta Tensión",2,0,3,3,"''",False,False,"IE6214","IE5313","''",electiva = True, costo = 1)
+        Materia("*Electiva","IE7763","Control Y Operación De Sistemas De Potencia",3,1,0,3,"''",False,False,"IE6134","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","IE7743","Planificación Sistemas De Potencia",3,0,0,3,"''",False,False,"IE7213","''","''",electiva = True, costo = 1)
+        Materia("*Electiva Producción","II1033","Planificación Y Control De La Producción",3,1,0,3,"''",False,False,"II3043","''","''",electiva = True, costo = 1)
+        Materia("*Electiva Producción","II1053","Control De Calidad",3,0,0,3,"''",False,False,"II3043","''","''",electiva = True, costo = 1)
+        Materia("*Electiva Producción","II3013","Ingeniería De Costos",3,1,0,3,"''",False,False,"II3043","''","''",electiva = True, costo = 1)
+        Materia("*Electiva Producción","II1073","Diseño De Experimentos",3,0,0,3,"''",False,False,"II1053","''","''",electiva = True, costo = 1)
         #Entrenamiento Industrial opcional
-        Materia("Opcional","IE8128","Entrenamiento Industrial Opcional",0,0,0,8,"''",False,False,"IE7213","IE7613","''")
+        Materia("Opcional","IE8128","Entrenamiento Industrial Opcional",0,0,0,8,"''",False,False,"IE7213","IE7613","''",electiva = True, costo = 2)
         
     
     elif especialidad=="Ing. Mecánica":
@@ -599,27 +601,27 @@ def cargar_datos_defecto(especialidad, mencion = "No Aplica"):
         Materia("IX","II1043","Gestión De Mantenimiento",3,1,0,3,"''",False,False,"II3043","''","''")
         Materia("IX","IM3184","Máquinas Térmicas II",3,0,2,4,"''",False,False,"IM3173","''","''")
         Materia("IX","IM4123","Trabajo Especial II",3,0,0,3,"''",False,False,"IM4112","''","''")
-        Materia("IX","Según Materia I","Electiva Profesional I",4,0,0,3,"''",False,False,"''","''","''")
-        Materia("IX","Según Materia II","Electiva Profesional II",4,0,0,3,"''",False,False,"''","''","''")
-        Materia("IX","Según Materia III","Electiva Profesional III",4,0,0,3,"''",False,False,"''","''","''")
+        Materia("IX","Según Materia I","Electiva Profesional I",4,0,0,3,"''",False,False,"''","''","''",electiva = True)
+        Materia("IX","Según Materia II","Electiva Profesional II",4,0,0,3,"''",False,False,"''","''","''",electiva = True)
+        Materia("IX","Según Materia III","Electiva Profesional III",4,0,0,3,"''",False,False,"''","''","''",electiva = True)
         #Semestre X
         Materia("X","IM51216","Entrenamiento Industrial",40,0,0,16,"''",False,False,"Aprobar todo el pensum","''","''")
 
         #Electivas
-        Materia("*Electiva","II1053","Control De Calidad",3,0,0,3,"''",False,False,"II3043","''","''")
-        Materia("*Electiva","II3013","Costos",3,1,0,3,"''",False,False,"II3023","''","''")
-        Materia("*Electiva","IM3253","Neumática",3,0,1,3,"''",False,False,"IM3234","IM3163","''")
-        Materia("*Electiva","IM3633","Tribología",3,0,1,3,"''",False,False,"IM1453","''","''")
-        Materia("*Electiva","MT2013","Corrosión",2,0,2,3,"''",False,False,"MT1015","''","''")
-        Materia("*Electiva","MT1223","Ensayos No Destructivos",2,0,2,3,"''",False,False,"MT4053","''","''")
-        Materia("*Electiva","MT4023","Fundición",2,0,3,3,"''",False,False,"MT1015","''","''")
-        Materia("*Electiva","MT1013","Tratamientos Térmicos",2,0,2,3,"''",False,False,"MT1015","''","''")
-        Materia("*Electiva","IM3333","Refrigeración Y Aire Acondicionado",3,0,1,3,"''",False,False,"IM3323","''","''")
-        Materia("*Electiva","IM2433","Control Numérico",3,1,0,3,"''",False,False,"IM2244","''","''")
-        Materia("*Electiva","IM2413","Mantenimiento Mecánico",3,1,0,3,"''",False,False,"IM2244","''","''")
-        Materia("*Electiva","IM3243","Sistemas Hidráulicos",3,0,1,3,"''",False,False,"IM3234","''","''")
+        Materia("*Electiva","II1053","Control De Calidad",3,0,0,3,"''",False,False,"II3043","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","II3013","Costos",3,1,0,3,"''",False,False,"II3023","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","IM3253","Neumática",3,0,1,3,"''",False,False,"IM3234","IM3163","''",electiva = True, costo = 1)
+        Materia("*Electiva","IM3633","Tribología",3,0,1,3,"''",False,False,"IM1453","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","MT2013","Corrosión",2,0,2,3,"''",False,False,"MT1015","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","MT1223","Ensayos No Destructivos",2,0,2,3,"''",False,False,"MT4053","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","MT4023","Fundición",2,0,3,3,"''",False,False,"MT1015","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","MT1013","Tratamientos Térmicos",2,0,2,3,"''",False,False,"MT1015","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","IM3333","Refrigeración Y Aire Acondicionado",3,0,1,3,"''",False,False,"IM3323","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","IM2433","Control Numérico",3,1,0,3,"''",False,False,"IM2244","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","IM2413","Mantenimiento Mecánico",3,1,0,3,"''",False,False,"IM2244","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","IM3243","Sistemas Hidráulicos",3,0,1,3,"''",False,False,"IM3234","''","''",electiva = True, costo = 1)
         #Entrenamiento Industrial opcional
-        Materia("Opcional","IM5118","Entrenamiento Industrial Opcional",0,40,0,8,"''",False,False,"IM1453","IM3234","''", pre3 = "125")
+        Materia("Opcional","IM5118","Entrenamiento Industrial Opcional",0,40,0,8,"''",False,False,"IM1453","IM3234","''", pre3 = "125",electiva = True, costo = 2)
         
         
     elif especialidad=="Ing. Química":
@@ -678,36 +680,36 @@ def cargar_datos_defecto(especialidad, mencion = "No Aplica"):
         Materia("VII","IQ4414","Operaciones Unitarias I",4,0,0,4,"''",False,False,"IQ4334","IQ4224","''")
         #Semestre VIII
         Materia("VIII","EL3034","Instrumentación Y Control",3,0,2,4,"''",False,False,"IE5014","IQ4331","''")
-        Materia("VIII","III1033","Planificación Y Control De La Producción",3,1,0,3,"''",False,False,"II3043","''","''")
+        Materia("VIII","II1033","Planificación Y Control De La Producción",3,1,0,3,"''",False,False,"II3043","''","''")
         Materia("VIII","IQ3421","Lab. De Termodinánica Y Cinética",0,0,3,1,"''",False,False,"IQ3413","IQ4224","''")
         Materia("VIII","IQ4424","Operaciones Unitarias II",4,0,0,4,"''",False,False,"IQ4414","''","''")
         Materia("VIII","IQ4513","Reactores Químicos",3,1,0,3,"''",False,False,"IQ3413","IQ4224","''")
         Materia("VIII","IQ4532","Trabajo Especial I",2,0,0,2,"''",False,False,"IQ3241","IQ4414","''")
-        Materia("VIII","Según Materia I","Electiva Profesional I",3,0,0,3,"''",False,False,"''","''","''")
+        Materia("VIII","Según Materia I","Electiva Profesional I",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
         #Semestre IX
         Materia("IX","IQ4432","Lab. De Operaciones Unitarias",0,0,5,2,"''",False,False,"IQ4424","IQ4331","''")
         Materia("IX","IQ4523","Ingeniería De Procesos",3,1,0,3,"''",False,False,"IQ4513","IQ4414","''")
         Materia("IX","IQ4543","Trabajo Especial II",3,0,0,3,"''",False,False,"IQ4532","''","IQ4432")
-        Materia("IX","Según Materia II","Electiva Profesional II",3,0,0,3,"''",False,False,"''","''","''")
-        Materia("IX","Según Materia III","Electiva Profesional III",3,0,0,3,"''",False,False,"''","''","''")
+        Materia("IX","Según Materia II","Electiva Profesional II",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
+        Materia("IX","Según Materia III","Electiva Profesional III",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
         #Semestre X
         Materia("X","IQ47216","Entrenamiento Industrial",40,0,0,16,"''",False,False,"Aprobar todo el pensum","''","''")
         
         #Electivas
-        Materia("*Electiva","IQ3613","Química De Alimentos",3,0,0,3,"''",False,False,"IQ3323","IQ4334","''")
-        Materia("*Electiva","IQ3623","Introducción A La Tecnología De Alimentos",3,0,0,3,"''",False,False,"IQ3613","''","''")
-        Materia("*Electiva","IQ4613","Introducción A La Ingeniería Ambiental",3,0,0,3,"''",False,False,"IQ3323","IQ4334","''")
-        Materia("*Electiva","IQ4623","Tratamiento De Aguas",3,0,0,3,"''",False,False,"IQ4613","''","''")
-        Materia("*Electiva","IQ4633","Tratamiento De Aguas Residuales",3,0,0,3,"''",False,False,"IQ4613","''","''")
-        Materia("*Electiva","IQ4653","Refinación De Petróleo I",3,0,0,3,"''",False,False,"IQ3323","''","IQ4513")
-        Materia("*Electiva","IQ4663","Refinación De Petróleo II",3,0,0,3,"''",False,False,"IQ4653","''","''")
-        Materia("*Electiva","IQ4673","Control De Procesos",3,0,0,3,"''",False,False,"EL3034","IQ4513","''")
-        Materia("*Electiva","IQ4683","Simulación De Procesos Químicos",3,0,0,3,"''",False,False,"IQ4513","IQ4424","IQ4523")
-        Materia("*Electiva","IQ3633","Procesos, Mejoramiento De Crudos Pesados, Extra-Pesados Y Residuales",3,0,0,3,"''",False,False,"IQ3323","IQ3233","''")
-        Materia("*Electiva","IQ4693","Petroquímica",3,0,0,3,"''",False,False,"IQ3332","''","IQ4513")
-        Materia("*Electiva","IQ4643","Tratamiento De Desechos Sólidos",3,3,0,3,"''",False,False,"IQ4613","''","''")
+        Materia("*Electiva","IQ3613","Química De Alimentos",3,0,0,3,"''",False,False,"IQ3323","IQ4334","''",electiva = True, costo = 1)
+        Materia("*Electiva","IQ3623","Introducción A La Tecnología De Alimentos",3,0,0,3,"''",False,False,"IQ3613","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","IQ4613","Introducción A La Ingeniería Ambiental",3,0,0,3,"''",False,False,"IQ3323","IQ4334","''",electiva = True, costo = 1)
+        Materia("*Electiva","IQ4623","Tratamiento De Aguas",3,0,0,3,"''",False,False,"IQ4613","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","IQ4633","Tratamiento De Aguas Residuales",3,0,0,3,"''",False,False,"IQ4613","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","IQ4653","Refinación De Petróleo I",3,0,0,3,"''",False,False,"IQ3323","''","IQ4513",electiva = True, costo = 1)
+        Materia("*Electiva","IQ4663","Refinación De Petróleo II",3,0,0,3,"''",False,False,"IQ4653","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","IQ4673","Control De Procesos",3,0,0,3,"''",False,False,"EL3034","IQ4513","''",electiva = True, costo = 1)
+        Materia("*Electiva","IQ4683","Simulación De Procesos Químicos",3,0,0,3,"''",False,False,"IQ4513","IQ4424","IQ4523",electiva = True, costo = 1)
+        Materia("*Electiva","IQ3633","Procesos, Mejoramiento De Crudos Pesados, Extra-Pesados Y Residuales",3,0,0,3,"''",False,False,"IQ3323","IQ3233","''",electiva = True, costo = 1)
+        Materia("*Electiva","IQ4693","Petroquímica",3,0,0,3,"''",False,False,"IQ3332","''","IQ4513",electiva = True, costo = 1)
+        Materia("*Electiva","IQ4643","Tratamiento De Desechos Sólidos",3,3,0,3,"''",False,False,"IQ4613","''","''",electiva = True, costo = 1)
         #Entrenamiento Industrial opcional
-        Materia("Opcional","IQ4718","Entrenamiento Industrial Opcional",0,0,0,8,"''",False,False,"IQ3241","IQ4414","''")
+        Materia("Opcional","IQ4718","Entrenamiento Industrial Opcional",0,0,0,8,"''",False,False,"IQ3241","IQ4414","''",electiva = True, costo = 2)
         
     
     elif especialidad=="Ing. Metalúrgica":
@@ -769,38 +771,37 @@ def cargar_datos_defecto(especialidad, mencion = "No Aplica"):
         Materia("VIII","MT4123","Ingeniería De La Soldadura",2,0,2,3,"''",False,False,"MT4213","IE5014","''")
         Materia("VIII","MT4234","Siderúrgia",4,0,0,4,"''",False,False,"MT2222","IQ4034","''")
         Materia("VIII","MT5112","Trabajo Especial I",2,0,0,2,"''",False,False,"MT4213","MT1313","''", pre3 = "MT2231")
-        Materia("VIII","Según Materia I","Electiva Profesional I",3,0,0,3,"''",False,False,"''","''","''")
+        Materia("VIII","Según Materia I","Electiva Profesional I",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
         #Semestre IX
         Materia("IX","MT1223","Ensayos No Destructivos",2,0,2,3,"''",False,False,"MT4123","''","''")
         Materia("IX","MT3132","Metalurgia Mecánica II",2,0,0,2,"''",False,False,"MT3112","IM2054","''")
         Materia("IX","MT5123","Trabajo Especial II",3,0,0,3,"''",False,False,"MT5112","''","''")
         Materia("IX","MT3111","Laboratorio Metalurgia Mecánica",0,0,2,1,"''",False,False,"MT3112","''","''")
-        Materia("IX","Según Materia II","Electiva Profesional II",3,0,0,3,"''",False,False,"''","''","''")
-        Materia("IX","Según Materia III","Electiva Profesional III",3,0,0,3,"''",False,False,"''","''","''")
+        Materia("IX","Según Materia II","Electiva Profesional II",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
+        Materia("IX","Según Materia III","Electiva Profesional III",3,0,0,3,"''",False,False,"''","''","''",electiva = True)
         #Semestre X
         Materia("X","MT52216","Entrenamiento Industrial",40,0,0,16,"''",False,False,"Aprobar todo el pensum","''","''")
         
         #Electivas
-        Materia("*Electiva","EL3034","Instrumentación Y Control",3,0,2,4,"''",False,False,"IE5014","''","''")
-        Materia("*Electiva","II1033","Planificación Y Control De La Producción",3,1,0,3,"''",False,False,"II3043","''","''")
-        Materia("*Electiva","II1043","Gestión De Mantenimiento",3,1,0,3,"''",False,False,"II3043","''","''")
-        Materia("*Electiva","II1073","Diseño De Experimentos",3,0,0,3,"''",False,False,"II1053","''","''")
-        Materia("*Electiva","II3013","Ingeniería De Costos",3,1,0,3,"''",False,False,"II3043","''","''")
-        Materia("*Electiva","MT1613","Metalografía Industrial",2,0,2,3,"''",False,False,"MT1313","''","''")
-        Materia("*Electiva","MT1623","Aceros Especiales",3,0,0,3,"''",False,False,"MT1313","''","''")
-        Materia("*Electiva","MT3633","Analisis De Fallas",3,0,0,3,"''",False,False,"MT3112","''","''")
-        Materia("*Electiva","MT4683","Colada Continua",3,0,0,3,"''",False,False,"MT4234","MT4213","''")
-        Materia("*Electiva","MT2613","Tratamientos De Superficie",3,0,0,3,"''",False,False,"MT2323","''","''")
-        Materia("*Electiva","MT2643","Concentración De Minerales",2,0,2,3,"''",False,False,"MT2231","''","''")
-        Materia("*Electiva","MT3613","Metalurgia Del Mecanizado",3,0,0,3,"''",False,False,"IM2014","MT3112","''")
-        Materia("*Electiva","IM3023","Tribologia",3,0,1,3,"''",False,False,"IM2054","''","''")
-        Materia("*Electiva","MT4653","Fundición Avanzada",3,0,0,3,"''",False,False,"MT4213","''","''")
-        Materia("*Electiva","MT4663","Materiales Refractarios",2,0,2,3,"''",False,False,"MT1144","MT2222","''")
-        Materia("*Electiva","MT4673","Tecnología Del Aluminio",3,0,0,3,"''",False,False,"MT1144","MT2222","''")
+        Materia("*Electiva","EL3034","Instrumentación Y Control",3,0,2,4,"''",False,False,"IE5014","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","II1033","Planificación Y Control De La Producción",3,1,0,3,"''",False,False,"II3043","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","II1043","Gestión De Mantenimiento",3,1,0,3,"''",False,False,"II3043","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","II1073","Diseño De Experimentos",3,0,0,3,"''",False,False,"II1053","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","II3013","Ingeniería De Costos",3,1,0,3,"''",False,False,"II3043","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","MT1613","Metalografía Industrial",2,0,2,3,"''",False,False,"MT1313","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","MT1623","Aceros Especiales",3,0,0,3,"''",False,False,"MT1313","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","MT3633","Analisis De Fallas",3,0,0,3,"''",False,False,"MT3112","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","MT4683","Colada Continua",3,0,0,3,"''",False,False,"MT4234","MT4213","''",electiva = True, costo = 1)
+        Materia("*Electiva","MT2613","Tratamientos De Superficie",3,0,0,3,"''",False,False,"MT2323","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","MT2643","Concentración De Minerales",2,0,2,3,"''",False,False,"MT2231","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","MT3613","Metalurgia Del Mecanizado",3,0,0,3,"''",False,False,"IM2014","MT3112","''",electiva = True, costo = 1)
+        Materia("*Electiva","IM3023","Tribologia",3,0,1,3,"''",False,False,"IM2054","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","MT4653","Fundición Avanzada",3,0,0,3,"''",False,False,"MT4213","''","''",electiva = True, costo = 1)
+        Materia("*Electiva","MT4663","Materiales Refractarios",2,0,2,3,"''",False,False,"MT1144","MT2222","''",electiva = True, costo = 1)
+        Materia("*Electiva","MT4673","Tecnología Del Aluminio",3,0,0,3,"''",False,False,"MT1144","MT2222","''",electiva = True, costo = 1)
         #Entrenamiento Industrial opcional
-        Materia("Opcional","MT5218","Entrenamiento Industrial Opcional",0,0,0,8,"''",False,False,"MT1313","MT2231","''")
+        Materia("Opcional","MT5218","Entrenamiento Industrial Opcional",0,0,0,8,"''",False,False,"MT1313","MT2231","''",electiva = True, costo = 2)
 
-    
     Logger.info("Finalizó cargado de materias por defecto")
     return Materia.materias[:]
 
@@ -884,69 +885,48 @@ def migrar_datos(version_guardada):
                 diccionario_viejo = {materia.codigo : materia for materia in lista_vieja}
                 
                 materias_migradas = []
-                cod_electivas = ["Según Materia I","Según Materia II","Según Materia III","Según Materia IV"]
-                entrenamiento_industrial = 0
                 for materia_nueva in lista_materias_defecto:
-                    materia_vieja = None
-                    if materia_nueva.codigo in cod_electivas:
-                        if especialidad == "Ing. Industrial":
-                            indices_electivas = [49,55]
-                        elif especialidad == "Ing. Eléctrica":
-                            indices_electivas = [49,50,54,55]
-                        elif especialidad == "Ing. Electrónica" and not mencion == "Comunicaciones" and version_entero <= 1410:
-                            indices_electivas = [50,55,56]
-                        elif especialidad == "Ing. Electrónica" and mencion == "Comunicaciones" and version_entero <= 1410:
-                            indices_electivas = [54,55,56]
-                        elif especialidad == "Ing. Electrónica" and not mencion == "Comunicaciones" and version_entero > 1410:
-                            indices_electivas = [51,56,57]
-                        elif especialidad == "Ing. Electrónica" and mencion == "Comunicaciones" and version_entero > 1410:
-                            indices_electivas = [55,56,57]
-                        elif especialidad == "Ing. Mecánica" and version_entero <= 1410:
-                            indices_electivas = [51,52,53]
-                        elif especialidad == "Ing. Mecánica" and version_entero == 1411:
-                            indices_electivas = [45, 51]
-                        elif especialidad == "Ing. Mecánica" and version_entero > 1411 and version_entero <= 1413:
-                            indices_electivas = [51,52,53]
-                        elif especialidad == "Ing. Mecánica" and version_entero > 1413:
-                            indices_electivas = [52,53,54]
-                        elif especialidad == "Ing. Metalúrgica":
-                            indices_electivas = [49,54,55]
-                        elif especialidad == "Ing. Química" and version_entero <= 1413:
-                            indices_electivas = [50,54,55]
-                        elif especialidad == "Ing. Química" and version_entero > 1413:
-                            indices_electivas = [51,55,56]
-                            
-                        nro_electiva = cod_electivas.index(materia_nueva.codigo)
-                        if nro_electiva <= len(indices_electivas) - 1:
-                            materia_vieja = lista_materias_archivo[indices_electivas[nro_electiva] - entrenamiento_industrial]
-                            if materia_vieja.semestre == "Opcional" and especialidad != "Ing. Mecánica":
-                                entrenamiento_industrial = 1
-                                if especialidad == "Ing. Electrónica" and not mencion == "Comunicaciones":
-                                    indices_electivas = [51,56,57]
-                                elif especialidad == "Ing. Electrónica" and mencion == "Comunicaciones":
-                                    indices_electivas = [55,56,57]
-                                elif especialidad == "Ing. Mecánica":
-                                    indices_electivas = [52,53,54]
-                                elif especialidad == "Ing. Química":
-                                    indices_electivas = [51,55,56]
-                                lista_materias_defecto.pop(indices_electivas[nro_electiva + 1])
-                                
-                            if materia_vieja.codigo not in cod_electivas:
-                                if materia_vieja.codigo in dict_electivas_defecto.keys():
-                                    materia_nueva = dict_electivas_defecto[materia_vieja.codigo]
-                        
+
                     if materia_nueva.codigo in diccionario_viejo.keys():
-                        if not materia_vieja:
-                            materia_vieja = diccionario_viejo[materia_nueva.codigo]
+                        materia_vieja = diccionario_viejo[materia_nueva.codigo]
                         materia_nueva.nota = materia_vieja.nota
                         materia_nueva.aprobada = materia_vieja.aprobada
                         materia_nueva.disponible = materia_vieja.disponible
                         materia_nueva.inscrita = materia_vieja.inscrita
                         materia_nueva.evaluaciones = materia_vieja.evaluaciones
                         materia_nueva.porcentual = materia_vieja.porcentual
-                    
+
                     materias_migradas.append(materia_nueva)
-                
+
+                indices_placeholders = []
+                for i,materia_migrada in enumerate(materias_migradas):
+                    if materia_migrada.electiva and materia_migrada.costo == 0:
+                        indices_placeholders.append(i)
+
+                indice_a_borrar = 0
+                for materia_vieja in lista_materias_archivo:
+                    if materia_vieja.codigo in dict_electivas_defecto.keys():
+                        electiva_nueva = dict_electivas_defecto[materia_vieja.codigo]
+                        electiva_nueva.nota = materia_vieja.nota
+                        electiva_nueva.aprobada = materia_vieja.aprobada
+                        electiva_nueva.disponible = materia_vieja.disponible
+                        electiva_nueva.inscrita = materia_vieja.inscrita
+                        electiva_nueva.evaluaciones = materia_vieja.evaluaciones
+                        electiva_nueva.porcentual = materia_vieja.porcentual
+
+                        if electiva_nueva.costo == 1:
+                            materias_migradas[indices_placeholders[0]] = electiva_nueva
+                            indices_placeholders.pop(0)
+                        elif electiva_nueva.costo == 2:
+                            materias_migradas[indices_placeholders[0]] = electiva_nueva
+                            indices_placeholders.pop(0)
+                            if indices_placeholders:
+                                indice_a_borrar = indices_placeholders[0]
+                                indices_placeholders.pop(0)
+
+                if indice_a_borrar:
+                    materias_migradas.pop(indice_a_borrar)
+
                 if materias_migradas:
                     Logger.info("Lista de materia migradas correcta. Iniciando copiado en archivo de materias")
                     lista_diccionarios = []
