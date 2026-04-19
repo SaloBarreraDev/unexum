@@ -21,7 +21,10 @@ class Materia:
     electivas = []
     agregar_electivas = False
     
-    def __init__(self, semestre, codigo, nombre, ht, ha, hl, uc, nota, aprobada, disponible, pre1, pre2, coreq, inscrita=False, evaluaciones = [], porcentual = False, pre3 = "''"):
+    def __init__(self, semestre, codigo, nombre, ht, ha, hl, uc, nota,
+                aprobada, disponible, pre1, pre2, coreq, inscrita=False,
+                evaluaciones = [], porcentual = False, pre3 = "''", electiva = False,
+                costo = 0, pre_electiva = False):
         self.semestre = semestre
         self.codigo = codigo
         self.nombre = nombre
@@ -38,6 +41,9 @@ class Materia:
         self.coreq=coreq
         self.inscrita = inscrita
         self.evaluaciones = []
+        self.electiva = electiva
+        self.costo = costo
+        self.pre_electiva = pre_electiva
         for e in evaluaciones:
             if not isinstance(e,str):
                 self.evaluaciones.append(e)
@@ -77,5 +83,9 @@ class Materia:
                 "inscrita": self.inscrita,
                 "evaluaciones": [evaluacion.to_dict() for evaluacion in self.evaluaciones],
                 "porcentual": self.porcentual,
-                "pre3": self.pre3}
+                "pre3": self.pre3,
+                "electiva": self.electiva,
+                "costo": self.costo,
+                "pre_electiva": self.pre_electiva}
+
         return datos
