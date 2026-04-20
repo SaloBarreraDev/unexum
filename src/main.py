@@ -1347,9 +1347,12 @@ class Widget_Principal(ScreenManager):
                     "color_fondo": self.color_fondo_claro
                     })
 
-            self.ids.rv_indice.data = datos_rv
+            Clock.schedule_once(lambda dt: self._actualizar_ui_indice(datos_rv))
 
         threading.Thread(target=cargar_datos, args=(self,)).start()
+
+    def _actualizar_ui_indice(self, datos_rv):
+        self.ids.rv_indice.data = datos_rv
 
     def es_numero(self, cadena):
         try:
@@ -2502,7 +2505,7 @@ class Widget_Principal(ScreenManager):
             datos_rv = []
             semestres = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
             color_tema = '#B2B2B2' if self.tema == 'Oscuro' else '#333333'
-            self.mapa_indices_pensum = {}
+            mapa_temp = {}
             i = 0
                 
             for materia in lista_materias:
@@ -2532,12 +2535,16 @@ class Widget_Principal(ScreenManager):
                     "texto_label": texto_materia,
                     })
 
-                self.mapa_indices_pensum[materia.codigo] = i
+                mapa_temp[materia.codigo] = i
                 i+=1
 
-            self.ids.rv_pensum.data = datos_rv
+            Clock.schedule_once(lambda dt: self._actualizar_ui_pensum(datos_rv, mapa_temp))
 
         threading.Thread(target=cargar_datos, args=(self,)).start()
+
+    def _actualizar_ui_pensum(self, datos_rv, mapa_temp):
+        self.mapa_indices_pensum = mapa_temp
+        self.ids.rv_pensum.data = datos_rv
     
     def mostrar_informacion_materia(self, materia_obj, es_semestre, semestre_str, touch = None, instance = None):
         if touch:
@@ -3320,22 +3327,38 @@ class Widget_Principal(ScreenManager):
 
             #Si hay disponibilidad para agregar una electiva, se agrega.
             else:
+                electiva.semestre = lista_materias[indices_disponibles[0]].semestre
+                self.unidades_aprobadas_y_totales()
+                pre1 = self.buscar_por_codigo(electiva.pre1)
+                if electiva.pre2 != "''":
+                    pre2 = self.buscar_por_codigo(electiva.pre2)
+                    req_pre2 = pre2.aprobada
+                else:
+                    req_pre2 = True
+
+                if electiva.coreq != "''":
+                    coreq = self.buscar_por_codigo(electiva.coreq)
+                    req_coreq = coreq.disponible
+                else:
+                    req_coreq = True
+
+                if pre1.aprobada and req_pre2 and req_coreq:
+                    electiva.disponible = True
+
                 lista_materias[indices_disponibles[0]] = electiva
+                self.materias_cache = lista_materias
                 if electiva.costo == 2:
                     pre_electiva = lista_materias[indices_disponibles[1] - 1]
                     if not pre_electiva.electiva:
                         pre_electiva.pre_electiva = True
                     del lista_materias[indices_disponibles[1]]
                 self.contador_electivas += electiva.costo
+
+                self.materias_dict = {m.codigo: m for m in self.materias_cache}
+                self.desactualizar_pensum(electiva.codigo)
                 self.unidades_aprobadas_y_totales()
                 self.cargar_datos_pensum()
-                if electiva.pre1 != '':
-                    self.actualizar_pensum(electiva.pre1)
-                if electiva.pre2 != '':
-                    self.actualizar_pensum(electiva.pre2)
-                if electiva.pre3 != '':
-                    self.actualizar_pensum(electiva.pre3)
-
+                
         #Quitar una electiva
         else:
             codigos_defecto = [
@@ -3350,14 +3373,9 @@ class Widget_Principal(ScreenManager):
                 "Electiva Profesional III",
                 "Electiva Profesional IV",
             ]
-            semestre = ""
             indice_quitar = lista_materias.index(electiva)
-            if indice_quitar <= 50:
-                semestre = "VIII"
-            else:
-                semestre = "IX"
-
-            electiva_defecto = Materia(semestre, codigos_defecto[self.contador_electivas - electiva.costo],
+            electiva.semestre = lista_materias[indice_quitar].semestre
+            electiva_defecto = Materia(electiva.semestre, codigos_defecto[self.contador_electivas - electiva.costo],
                 nombres_defecto[self.contador_electivas - electiva.costo],3,0,0,3,"''",False,False,"''",
                 "''","''",electiva = True)
 
@@ -3375,6 +3393,7 @@ class Widget_Principal(ScreenManager):
                     indice_pre_electiva = indice_quitar
 
                 electiva_place_holder = indice_pre_electiva + 1
+                electiva.semestre = lista_materias[electiva_place_holder].semestre
 
                 if electiva_place_holder <= 50:
                     semestre = "VIII"
@@ -3388,8 +3407,10 @@ class Widget_Principal(ScreenManager):
                 lista_materias.insert(electiva_place_holder, electiva_defecto)
 
             self.contador_electivas -= electiva.costo
+            self.materias_dict = {m.codigo: m for m in self.materias_cache}
             self.unidades_aprobadas_y_totales()
             self.desactualizar_pensum(electiva.codigo)
+            self.unidades_aprobadas_y_totales()
 
     def reiniciar_widgets(self):
         self.cargar_datos_pensum()

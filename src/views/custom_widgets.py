@@ -263,9 +263,9 @@ class BoxConRipplePensum(RecycleDataViewBehavior, RectangularRippleBehavior, MDR
         try:
             app = MDApp.get_running_app()
             wp = app.widget_principal
-            materia = wp.buscar_por_codigo(codigo)
             lista_materias = wp.get_materias()
-
+            materia = wp.buscar_por_codigo(codigo)
+            
             indice_real = wp.mapa_indices_pensum.get(codigo)
             if indice_real is None:
                 return
@@ -275,7 +275,7 @@ class BoxConRipplePensum(RecycleDataViewBehavior, RectangularRippleBehavior, MDR
                     materia.aprobada = True
                     wp.ids.rv_pensum.data[indice_real]["active"] = True
                     wp.ids.rv_pensum.data[indice_real]["color_fondo"] = wp.VERDE
-                    
+
                     wp.unidades_aprobadas_y_totales()
                     wp.actualizar_pensum(materia.codigo) 
                     wp.guardar_datos(lista_materias)
@@ -292,6 +292,7 @@ class BoxConRipplePensum(RecycleDataViewBehavior, RectangularRippleBehavior, MDR
                 
                 wp.unidades_aprobadas_y_totales()
                 wp.desactualizar_pensum(materia.codigo)
+                wp.unidades_aprobadas_y_totales()
                 wp.guardar_datos(lista_materias)
         finally:
             BoxConRipplePensum._bloqueo_global_toques = False
@@ -508,7 +509,6 @@ class SemestrePensum(MDBoxLayout):
             super().on_touch_down(touch)
             return True
         return super().on_touch_down(touch)
-
 
 class BoxConRippleElectivas(RectangularRippleBehavior, MDRelativeLayout):
     ripple_duration_in_fast = 0.1
