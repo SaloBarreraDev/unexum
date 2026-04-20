@@ -3523,16 +3523,17 @@ class Widget_Principal(ScreenManager):
                 if codigo in self.datos_usuario_horario.keys():
                     secciones_disponibles = self.datos_usuario_horario[codigo]
                     materia = self.buscar_por_codigo(codigo)
-                    panel = ExpansionPanelItem(materia)
-                    for seccion in secciones_disponibles:
-                        dias = self.formato_a_dias(seccion["FORMATO"])
-                        aulas = self.simplificar_aulas(seccion["AULA"])
-                        widget_seccion = Seccion(materia, seccion["SEC"], seccion["PROFESOR"], dias, seccion["ACTIVA"], aulas)
-                        panel.ids["content"].add_widget(widget_seccion)
+                    if materia:
+                        panel = ExpansionPanelItem(materia)
+                        for seccion in secciones_disponibles:
+                            dias = self.formato_a_dias(seccion["FORMATO"])
+                            aulas = self.simplificar_aulas(seccion["AULA"])
+                            widget_seccion = Seccion(materia, seccion["SEC"], seccion["PROFESOR"], dias, seccion["ACTIVA"], aulas)
+                            panel.ids["content"].add_widget(widget_seccion)
 
-                    self.datos_usuario_horario[codigo] = secciones_disponibles
+                        self.datos_usuario_horario[codigo] = secciones_disponibles
 
-                    contenedor.add_widget(panel)
+                        contenedor.add_widget(panel)
 
         if self.datos_usuario_horario["Materias"]:
             ak.start(carga_asincrona(self))
@@ -3726,7 +3727,6 @@ class Widget_Principal(ScreenManager):
             codigos_agregados = [materia.codigo for materia in materias_agregadas]
 
             materias_sin_datos = []
-            self.datos_usuario_horario["Materias"]
             for codigo in self.datos_usuario_horario["Materias"]:
                 await ak.sleep(0)
                 if codigo not in codigos_agregados:
@@ -3749,22 +3749,6 @@ class Widget_Principal(ScreenManager):
                             if materia not in materias_sin_datos:
                                 self.datos_usuario_horario[codigo] = secciones_disponibles
                                 contenedor.add_widget(panel)
-
-                        panel = ExpansionPanelItem(materia)
-                        for seccion in secciones_disponibles:
-                            await ak.sleep(0)
-                            if seccion["FORMATO"] == "" or not seccion["FORMATO"]:
-                                materias_sin_datos.append(materia)
-                            else:
-                                dias = self.formato_a_dias(seccion["FORMATO"])
-                                aulas = self.simplificar_aulas(seccion["AULA"])
-                                widget_seccion = Seccion(materia, seccion["SEC"], seccion["PROFESOR"], dias, True, aulas)
-                                seccion["ACTIVA"] = True
-                                panel.ids["content"].add_widget(widget_seccion)
-
-                        if materia not in materias_sin_datos:
-                            self.datos_usuario_horario[codigo] = secciones_disponibles
-                            contenedor.add_widget(panel)
                     else:
                         if self.buscar_por_codigo(codigo):
                             materias_sin_datos.append(self.buscar_por_codigo(codigo))
