@@ -3749,6 +3749,22 @@ class Widget_Principal(ScreenManager):
                             if materia not in materias_sin_datos:
                                 self.datos_usuario_horario[codigo] = secciones_disponibles
                                 contenedor.add_widget(panel)
+
+                        panel = ExpansionPanelItem(materia)
+                        for seccion in secciones_disponibles:
+                            await ak.sleep(0)
+                            if seccion["FORMATO"] == "" or not seccion["FORMATO"]:
+                                materias_sin_datos.append(materia)
+                            else:
+                                dias = self.formato_a_dias(seccion["FORMATO"])
+                                aulas = self.simplificar_aulas(seccion["AULA"])
+                                widget_seccion = Seccion(materia, seccion["SEC"], seccion["PROFESOR"], dias, True, aulas)
+                                seccion["ACTIVA"] = True
+                                panel.ids["content"].add_widget(widget_seccion)
+
+                        if materia not in materias_sin_datos:
+                            self.datos_usuario_horario[codigo] = secciones_disponibles
+                            contenedor.add_widget(panel)
                     else:
                         if self.buscar_por_codigo(codigo):
                             materias_sin_datos.append(self.buscar_por_codigo(codigo))
