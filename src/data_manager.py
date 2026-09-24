@@ -806,7 +806,9 @@ def cargar_datos_defecto(especialidad, mencion = "No Aplica"):
     return Materia.materias[:]
 
 def migrar_datos(version_guardada):
-    Logger.info("Iniciando migración de datos")
+    #Logger.info("Iniciando migración de datos")
+    Logger.info("Migración de datos omitida")
+    return
     version_entero = int(version_guardada[0] + version_guardada[2] + version_guardada[4:])
     
     lista_sufijos = {"industrial": "Ing. Industrial", "electronica_comunicaciones": "Comunicaciones", "electronica_computacion" : "Computación",

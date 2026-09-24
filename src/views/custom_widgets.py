@@ -7,6 +7,7 @@ from kivymd.uix.label import MDLabel
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.selectioncontrol import MDCheckbox
 from kivymd.uix.behaviors.focus_behavior import FocusBehavior
+from kivymd.uix.card import MDCard
 from kivy.uix.recycleview import RecycleView
 from kivy.uix.recycleview.layout import LayoutSelectionBehavior
 from kivy.uix.recycleview.views import RecycleDataViewBehavior
@@ -481,7 +482,6 @@ class Seccion(CommonElevationBehavior, MDRelativeLayout):
         self.estado = estado
         self.aula = aula
 
-
 #RV custom indice y pensum
 class RVIndice(RecycleView):
     def __init__(self, **kwargs):
@@ -516,3 +516,29 @@ class BoxConRippleElectivas(RectangularRippleBehavior, MDRelativeLayout):
     ripple_duration_out = 0.1
     ripple_color = [0.5, 0.5, 0.5, 0.1]
     _is_recycling = False
+
+
+#RV custom de listado de archivos
+class RVListado(RecycleView):
+    def __init__(self, **kwargs):
+        super(RVListado, self).__init__(**kwargs)
+        self.data = []
+
+class CardArchivo(RecycleDataViewBehavior, MDCard):
+    nombre_documento = StringProperty("")
+    tipo = StringProperty("")
+    nombre_autor = StringProperty("")
+    reportes = ObjectProperty(0)
+    peso_documento = ObjectProperty(0)
+    url_archivo = StringProperty("")
+    createdAt = StringProperty("")
+    unidad = StringProperty("")
+    icono = StringProperty("")
+    _is_recycling = False
+
+    def refresh_view_attrs(self, rv, index, data):
+        self._is_recycling = True
+        self.index = index
+        super(CardArchivo, self).refresh_view_attrs(rv, index, data)
+        self._is_recycling = False
+

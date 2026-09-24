@@ -156,7 +156,6 @@
         bold: True
         halign:"center"
 
-
 #Widgets de indice
 <LabelListaIndice>:
     theme_line_height: "Custom"
@@ -224,6 +223,56 @@
     color_inactive: "gray"
     color_active: app.root.AZUL_OSCURO
     pos_hint:{"center_x": 0.9, "center_y": 0.5}
+#Widgets de Listado
+<RVListado>:
+    viewclass: 'CardArchivo'
+
+<CardArchivo>:
+    size_hint: 1, None
+    style: "elevated"
+    orientation: "horizontal"
+    focus_color: [1,1,1,0]
+    spacing: dp(10)
+    padding: [dp(10), 0, 0, 0]
+    MDIcon:
+        icon: root.icono
+        pos_hint: {"center_y": 0.5}
+
+    MDLabel:
+        pos_hint: {"center_y": 0.5}
+        markup: True
+        text: f"[b]{root.nombre_documento}[/b]\n{root.nombre_autor}\nTamaño: {root.peso_documento}MB - Reportes: {root.reportes}\nUnid. {root.unidad} - Subido: {root.createdAt}"
+    MDRelativeLayout:
+        size_hint: None, 1
+        width: dp(40)
+        orientation: "vertical"
+
+        MDIconButton:
+            icon: "download"
+            style: "filled"
+            theme_icon_color: "Custom"
+            icon_color: "white"
+            theme_font_size: "Custom"
+            font_size: "15sp"
+            size: dp(25), dp(25)
+            pos_hint: {"center_x": 0.5, "center_y": 0.66}
+            on_release: app.root.descargar_documento(root.url_archivo, root.nombre_documento, root.unidad, root.peso_documento)
+            theme_bg_color: "Custom"
+            md_bg_color: app.root.CYAN
+
+        MDIconButton:
+            icon:"exclamation-thick"
+            style: "filled"
+            theme_icon_color: "Custom"
+            icon_color: "red"
+            theme_font_size: "Custom"
+            font_size: "15sp"
+            size: dp(25), dp(25)
+            pos_hint: {"center_x": 0.5, "center_y": 0.33}
+            on_release: app.root.reportar_archivo()
+            theme_bg_color: "Custom"
+            md_bg_color: app.root.CYAN
+
 
 #Pantallas:
 <Acerca>:
@@ -1313,6 +1362,16 @@
                 MDNavigationItemIcon:
                     icon: "clock"
 
+            MDNavigationItem:
+                theme_indicator_color: "Custom"
+                indicator_color: app.root.AZUL_MAS_CLARO
+                indicator_duration: 0.03
+                active: app.root.repositorio_active
+                MDNavigationItemLabel:
+                    text:"Repositorio"
+                MDNavigationItemIcon:
+                    icon: "book-multiple"
+
 <Evaluaciones>:
     name:"Evaluaciones"
     MDBoxLayout:
@@ -1643,6 +1702,784 @@
             MatplotFigure:
                 id: figure_wgt
 
+<Repositorio>:
+    name: "Repositorio"
+    MDBoxLayout:
+        orientation: 'vertical'
+        md_bg_color: app.root.color_fondo_claro
+        id: box_principal_repositorio
+        spacing: dp(1)
+        padding: [0, app.size_status, 0, app.size_nav]
+
+        MDTopAppBar:
+            type: "small"
+            size_hint_y: .06
+
+            MDTopAppBarTitle:
+                markup: True
+                font_style: "Title"
+                role: "large"
+                text: "[b]Repositorio[/b]" 
+            
+            MDTopAppBarTrailingButtonContainer:
+
+                MDActionTopAppBarButton:
+                    icon:"account"
+                    theme_icon_color: "Custom"
+                    icon_color: "gray"
+                    on_release: app.root.dialogo_sesion()
+
+                MDActionTopAppBarButton:
+                    icon:"refresh"
+                    theme_icon_color: "Custom"
+                    icon_color: "gray"
+                    on_release: app.root.limpiar_cache()
+                    
+                MDActionTopAppBarButton:
+                    icon:"help-circle"
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.AZUL_CLARO
+                    on_press: app.root.guia_repositorio=True
+                    on_release: app.root.mostrar_guia_repositorio()
+
+        MDBoxLayout:
+            orientation: "vertical"
+            size_hint: 1, 0.24
+            padding: dp(5)
+            md_bg_color: app.root.color_fondo_claro
+            MDRelativeLayout:
+                size_hint: 1, 0.7
+                orientation: "vertical"
+
+                MDLabel:
+                    markup: True
+                    text: "[b]Seleccionar Materia[/b]"
+                    halign: "center"
+                    size_hint: 1, 0.06
+                    theme_font_size: "Custom"
+                    font_size: "18sp"
+                    pos_hint: {"center_x": 0.5, "center_y": 0.80}
+
+                MDButton:
+                    id: btn_inscribir
+                    style: "filled"
+                    theme_bg_color: "Custom"
+                    md_bg_color: "#4EC38F"
+                    pos_hint: {'center_x': 0.25,"center_y": 0.40}
+                    on_release: app.root.actualizar_menu_manterias(self, True)
+                    MDButtonText:
+                        markup: True
+                        text: "[color=#000000][b]Inscritas[/b][/color]"
+                    MDButtonIcon:
+                        icon:"plus"
+                        theme_icon_color:"Custom"
+                        icon_color:"black"        
+
+                MDButton:
+                    id: btn_todas
+                    style: "filled"
+                    theme_bg_color: "Custom"
+                    md_bg_color: "#4EC38F"
+                    pos_hint: {'center_x': 0.75,"center_y": 0.40}
+                    on_release: app.root.actualizar_menu_manterias(self, False)
+                    MDButtonText:
+                        markup: True
+                        text: "[color=#000000][b]Mostrar Todas[/b][/color]"
+                    MDButtonIcon:
+                        icon:"plus"
+                        theme_icon_color:"Custom"
+                        icon_color:"black"
+
+            MDCard:
+                size_hint: 1, 0.3
+                style: "elevated"
+                orientation: "vertical"
+                theme_focus_color: "Custom"
+                theme_bg_color: "Custom"
+                md_bg_color: app.root.NARANJA_CLARO
+                focus_color: [1,1,1,0]
+                MDLabel:
+                    markup: True
+                    text: f"  Materia: [b]{root.materia}[/b]"
+                    text_size: self.size
+                    shorten: True
+                    shorten_from: "right"
+                    halign: "left"
+                    theme_font_size: "Custom"
+                    font_size: "18sp"
+                    pos_hint: {"center_x": 0.5, "center_y":0.5}
+
+        MDDivider:
+
+        MDBoxLayout:
+            size_hint: 1, 0.70
+            padding: dp(10)
+            MDGridLayout:
+                cols: 2
+                rows: 3
+                spacing: dp(10)
+
+                MDCard:
+                    style: "elevated"
+                    orientation: "vertical"
+                    theme_focus_color: "Custom"
+                    focus_color: [1,1,1,0]
+                    padding: self.height*0.06
+                    on_release: app.root.ir_a_listado("Parciales y prácticas", root.nro_parciales)
+                    MDBoxLayout:
+                        orientation: "horizontal"
+                        size_hint: 1, 0.7
+                        Image: 
+                            source: "exam.png"
+                            pos_hint: {"center_x": 0.5,"center_y":0.5}
+                            size_hint: 0.7, 0.7
+                        MDLabel:
+                            text: "Parciales y prácticas"
+                            bold: True
+                            theme_line_height: "Custom"
+                            line_height: 0.9
+                            halign: "left"
+                            theme_font_size: "Custom"
+                            font_size: "16sp"
+                            pos_hint: {"center_x": 0.5, "center_y":0.5}
+                    MDBoxLayout:
+                        size_hint: 1, 0.3
+                        padding: dp(2)
+                        MDLabel:
+                            halign: "center"
+                            text: f"Archivos: {root.nro_parciales}"
+
+                MDCard:
+                    style: "elevated"
+                    orientation: "vertical"
+                    theme_focus_color: "Custom"
+                    focus_color: [1,1,1,0]
+                    padding: self.height*0.06
+                    on_release: app.root.ir_a_listado("Libros y documentos", root.nro_libros)
+                    MDBoxLayout:
+                        orientation: "horizontal"
+                        size_hint: 1, 0.7
+                        Image: 
+                            source: "pila-libros.png"
+                            pos_hint: {"center_x": 0.5,"center_y":0.5}
+                            size_hint: 0.7, 0.7
+                        MDLabel:
+                            text: "Libros y documentos"
+                            theme_line_height: "Custom"
+                            line_height: 0.9
+                            bold: True
+                            halign: "left"
+                            theme_font_size: "Custom"
+                            font_size: "16sp"
+                            pos_hint: {"center_x": 0.5, "center_y":0.5}
+                    MDBoxLayout:
+                        size_hint: 1, 0.3
+                        padding: dp(2)
+                        MDLabel:
+                            halign: "center"
+                            text: f"Archivos: {root.nro_libros}"
+
+                MDCard:
+                    style: "elevated"
+                    orientation: "vertical"
+                    theme_focus_color: "Custom"
+                    focus_color: [1,1,1,0]
+                    padding: self.height*0.06
+                    on_release: app.root.ir_a_listado("Apuntes y notas", root.nro_apuntes)
+                    MDBoxLayout:
+                        orientation: "horizontal"
+                        size_hint: 1, 0.7
+                        Image: 
+                            source: "notebook.png"
+                            pos_hint: {"center_x": 0.5,"center_y":0.5}
+                            size_hint: 0.7, 0.7
+                        MDLabel:
+                            text: "Apuntes y notas"
+                            theme_line_height: "Custom"
+                            line_height: 0.9
+                            bold: True
+                            halign: "left"
+                            theme_font_size: "Custom"
+                            font_size: "16sp"
+                            pos_hint: {"center_x": 0.5, "center_y":0.5}
+                    MDBoxLayout:
+                        size_hint: 1, 0.3
+                        padding: dp(2)
+                        MDLabel:
+                            halign: "center"
+                            text: f"Archivos: {root.nro_apuntes}"
+
+                MDCard:
+                    style: "elevated"
+                    orientation: "vertical"
+                    theme_focus_color: "Custom"
+                    focus_color: [1,1,1,0]
+                    padding: self.height*0.06
+                    on_release: app.root.ir_a_listado("Guías Teóricas", root.nro_guias_teoricas)
+                    MDBoxLayout:
+                        orientation: "horizontal"
+                        size_hint: 1, 0.7
+                        Image: 
+                            source: "theory.png"
+                            pos_hint: {"center_x": 0.5,"center_y":0.5}
+                            size_hint: 0.7, 0.7
+                        MDLabel:
+                            text: "Guías Teóricas"
+                            theme_line_height: "Custom"
+                            line_height: 0.9
+                            bold: True
+                            halign: "left"
+                            theme_font_size: "Custom"
+                            font_size: "16sp"
+                            pos_hint: {"center_x": 0.5, "center_y":0.5}
+                    MDBoxLayout:
+                        size_hint: 1, 0.3
+                        padding: dp(2)
+                        MDLabel:
+                            halign: "center"
+                            text: f"Archivos: {root.nro_guias_teoricas}"
+
+                MDCard:
+                    style: "elevated"
+                    orientation: "vertical"
+                    theme_focus_color: "Custom"
+                    focus_color: [1,1,1,0]
+                    padding: self.height*0.06
+                    on_release: app.root.ir_a_listado("Guías de ejercicios", root.nro_guias_ejercicios)
+                    MDBoxLayout:
+                        orientation: "horizontal"
+                        size_hint: 1, 0.7
+                        Image: 
+                            source: "practice.png"
+                            pos_hint: {"center_x": 0.5,"center_y":0.5}
+                            size_hint: 0.7, 0.7
+                        MDLabel:
+                            text: "Guías de ejercicios"
+                            theme_line_height: "Custom"
+                            line_height: 0.9
+                            bold: True
+                            halign: "left"
+                            theme_font_size: "Custom"
+                            font_size: "16sp"
+                            pos_hint: {"center_x": 0.5, "center_y":0.5}
+                    MDBoxLayout:
+                        size_hint: 1, 0.3
+                        padding: dp(2)
+                        MDLabel:
+                            halign: "center"
+                            text: f"Archivos: {root.nro_guias_ejercicios}"
+
+                MDCard:
+                    style: "elevated"
+                    orientation: "vertical"
+                    theme_focus_color: "Custom"
+                    focus_color: [1,1,1,0]
+                    padding: self.height*0.06
+                    on_release: app.root.ir_a_listado("Otros", root.nro_otros)
+                    MDBoxLayout:
+                        orientation: "horizontal"
+                        size_hint: 1, 0.7
+                        Image: 
+                            source: "others.png"
+                            pos_hint: {"center_x": 0.5,"center_y":0.5}
+                            size_hint: 0.5, 0.5
+                        MDLabel:
+                            text: "Otros"
+                            theme_line_height: "Custom"
+                            line_height: 0.9
+                            bold: True
+                            halign: "left"
+                            theme_font_size: "Custom"
+                            font_size: "16sp"
+                            pos_hint: {"center_x": 0.5, "center_y":0.5}
+                    MDBoxLayout:
+                        size_hint: 1, 0.3
+                        padding: dp(2)
+                        MDLabel:
+                            halign: "center"
+                            text: f"Archivos: {root.nro_otros}"
+
+        MDNavigationBar:
+            on_switch_tabs: app.root.on_switch_tabs(*args)
+            id: navigationbarrepositorio
+            disabled: app.root.navegacion_desactivada
+            MDNavigationItem:
+                active: app.root.inicio_active
+                theme_indicator_color: "Custom"
+                indicator_color: app.root.AZUL_MAS_CLARO
+                indicator_duration: 0.03
+                MDNavigationItemLabel:
+                    text: "Inicio"
+                MDNavigationItemIcon:
+                    icon: "home"
+
+            MDNavigationItem:
+                theme_indicator_color: "Custom"
+                indicator_color: app.root.AZUL_MAS_CLARO
+                indicator_duration: 0.03
+                active: app.root.notas_active
+                MDNavigationItemLabel:
+                    text: "Índice"
+                MDNavigationItemIcon:
+                    icon: "notebook-multiple"
+
+            MDNavigationItem:
+                theme_indicator_color: "Custom"
+                indicator_color: app.root.AZUL_MAS_CLARO
+                indicator_duration: 0.03
+                active: app.root.pensum_active
+                MDNavigationItemLabel:
+                    text:"Pensum"
+                MDNavigationItemIcon:
+                    icon: "view-list"
+
+            MDNavigationItem:
+                theme_indicator_color: "Custom"
+                indicator_color: app.root.AZUL_MAS_CLARO
+                indicator_duration: 0.03
+                active: app.root.horario_active
+                MDNavigationItemLabel:
+                    text:"Horario"
+                MDNavigationItemIcon:
+                    icon: "clock"
+
+            MDNavigationItem:
+                theme_indicator_color: "Custom"
+                indicator_color: app.root.AZUL_MAS_CLARO
+                indicator_duration: 0.03
+                active: app.root.repositorio_active
+                MDNavigationItemLabel:
+                    text:"Repositorio"
+                MDNavigationItemIcon:
+                    icon: "book-multiple"
+
+    MDFloatLayout:
+        MDFabButton:
+            icon: "file-upload-outline"
+            theme_icon_color: "Custom"
+            icon_color: app.root.NARANJA_CLARO
+            style: "standard"
+            pos_hint: {"center_y": 0.22, "center_x": 0.87}
+            on_release: app.root.ir_a_upload()
+
+<Listado>:
+    name: "Listado"
+    MDBoxLayout:
+        orientation: 'vertical'
+        md_bg_color: app.root.color_fondo_claro
+        id: box_principal_repositorio
+        spacing: dp(1)
+        padding: [0, app.size_status, 0, app.size_nav]
+
+        MDTopAppBar:
+            type: "small"
+            size_hint_y: .06
+
+            MDTopAppBarTitle:
+                markup: True
+                font_style: "Title"
+                role: "large"
+                text: f"[b]Archivos[/b]"
+
+            MDTopAppBarLeadingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon:"arrow-left"
+                    on_release: app.root.current = "Repositorio"
+
+        MDBoxLayout:
+            size_hint: 1, 0.12
+            padding: dp(10)
+            orientation: "vertical"
+            MDLabel:
+                bold: True
+                text: f"  {root.categoria}"
+                text_size: self.size
+                shorten: True
+                shorten_from: "right"
+                halign: "left"
+                theme_font_size: "Custom"
+                font_size: "18sp"
+                pos_hint: {"center_x": 0.5}
+            MDLabel:
+                text: f"  {root.materia}"
+                text_size: self.size
+                shorten: True
+                shorten_from: "right"
+                halign: "left"
+                theme_font_size: "Custom"
+                font_size: "16sp"
+                pos_hint: {"center_x": 0.5}
+
+
+        MDDivider:
+
+        MDCard:
+            size_hint: 1, 0.12
+            theme_bg_color: "Custom"
+            md_bg_color: app.root.color_fondo_claro
+            radius: 0
+            orientation: "vertical"
+            on_release: app.root.mostrar_documentos_listado("Todas")
+            MDRelativeLayout:
+                size_hint: 1, 0.5
+                MDLabel:
+                    id: label_unidad
+                    halign: "left"
+                    valign: "middle"
+                    markup: True
+                    text: f"    [b]Unidad: {root.unidad}[/b]"
+                    theme_font_size: "Custom"
+                    font_size: "18sp"
+
+
+            MDBoxLayout:
+                size_hint: 1, 0.5
+                orientation: "horizontal"
+                padding: [dp(5), 0]
+                MDButton:
+                    style: "text"
+                    pos_hint: {"center_y": 0.5}
+                    on_release: app.root.mostrar_documentos_listado("I")
+                    MDButtonText:
+                        text: "I"
+                        theme_text_color: "Custom"
+                        text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                MDButton:
+                    style: "text"
+                    pos_hint: {"center_y": 0.5}
+                    on_release: app.root.mostrar_documentos_listado("II")
+                    MDButtonText:
+                        text: "II"
+                        theme_text_color: "Custom"
+                        text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                MDButton:
+                    style: "text"
+                    pos_hint: {"center_y": 0.5}
+                    on_release: app.root.mostrar_documentos_listado("III")
+                    MDButtonText:
+                        text: "III"
+                        theme_text_color: "Custom"
+                        text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                MDButton:
+                    style: "text"
+                    pos_hint: {"center_y": 0.5}
+                    on_release: app.root.mostrar_documentos_listado("IV")
+                    MDButtonText:
+                        text: "IV"
+                        theme_text_color: "Custom"
+                        text_color: ("white" if app.root.tema == "Oscuro" else "black")
+
+                MDButton:
+                    style: "text"
+                    pos_hint: {"center_y": 0.5}
+                    on_release: app.root.mostrar_documentos_listado("V")
+                    MDButtonText:
+                        text: "V"
+                        theme_text_color: "Custom"
+                        text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                MDButton:
+                    style: "text"
+                    pos_hint: {"center_y": 0.5}
+                    on_release: app.root.mostrar_documentos_listado("VI")
+                    MDButtonText:
+                        text: "VI"
+                        theme_text_color: "Custom"
+                        text_color: ("white" if app.root.tema == "Oscuro" else "black")
+
+        MDDivider:
+
+        MDBoxLayout:
+            size_hint: 1, 0.72
+            padding: dp(8)
+            orientation: "vertical"
+            RVListado:
+                id: rv_listado
+                key_viewclass: "viewclass"
+                data: []    
+                RecycleBoxLayout:
+                    default_size: None, dp(110)
+                    default_size_hint: 1, None
+                    size_hint_y: None
+                    height: self.minimum_height
+                    orientation: "vertical"
+                    spacing: dp(8)
+
+<Upload>:
+    name: "Upload"
+    MDBoxLayout:
+        orientation: 'vertical'
+        md_bg_color: app.root.color_fondo_claro
+        id: box_principal_repositorio
+        spacing: dp(1)
+        padding: [0, app.size_status, 0, app.size_nav]
+
+        MDTopAppBar:
+            type: "small"
+            size_hint_y: .06
+
+            MDTopAppBarTitle:
+                markup: True
+                font_style: "Title"
+                role: "large"
+                text: f"[b]Subir documentos[/b]"
+
+            MDTopAppBarLeadingButtonContainer:
+                MDActionTopAppBarButton:
+                    icon:"arrow-left"
+                    on_release: app.root.current = "Repositorio"
+
+        MDBoxLayout:
+            size_hint: 1, 0.94
+            padding: dp(5)
+            spacing: dp(1)
+            md_bg_color: app.root.color_fondo_claro
+            orientation: "vertical"
+
+            MDCard:
+                size_hint: 1, 0.1
+                theme_bg_color: "Custom"
+                md_bg_color: app.root.color_fondo_claro
+                radius: 0
+                on_release: app.root.actualizar_menu_manterias(self, False, False)
+
+                MDLabel:
+                    markup: True
+                    text: f"    [b]Seleccionar Materia:[/b]\n    {root.materia}"
+                    halign: "left"
+                    size_hint: 1, 1
+                    theme_font_size: "Custom"
+                    font_size: "18sp"
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+            MDCard:
+                size_hint: 1, 0.1
+                theme_bg_color: "Custom"
+                md_bg_color: app.root.color_fondo_claro
+                radius: 0
+                on_release: app.root.seleccionar_archivo()
+                orientation: "vertical"
+
+                MDLabel:
+                    markup: True
+                    text: f"    [b]Seleccionar Archivo:[/b]"
+                    halign: "left"
+                    size_hint: 1, 0.5
+                    theme_font_size: "Custom"
+                    font_size: "18sp"
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                MDLabel:
+                    text: f"    {root.nombre_archivo}"
+                    halign: "left"
+                    size_hint: 1, 0.5
+                    shorten: True
+                    theme_font_size: "Custom"
+                    font_size: "18sp"
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+            MDCard:
+                size_hint: 1, 0.1
+                theme_bg_color: "Custom"
+                md_bg_color: app.root.color_fondo_claro
+                radius: 0
+                MDTextField:
+                    id: campo_tema
+                    mode: "filled"
+                    input_type: "text"
+                    write_tab: False
+                    size_hint_x: 1
+                    allow_copy: False
+                    use_bubble: False
+                    pos_hint: {'center_x': 0.5,'center_y': 0.5}
+                    theme_bg_color: "Custom"
+                    fill_color_normal: [1,1,1,0]
+                    fill_color_focus: [.9,.9,.9,0.1]
+                    theme_line_color: "Custom"
+                    line_color_normal: [1,1,1,0]
+                    line_color_focus: [1,1,1,0]
+                    theme_text_color: "Custom"
+                    text_color_normal: ("black" if app.root.tema == "Claro" else "white")
+                    text_color_focus: ("black" if app.root.tema == "Claro" else "white")
+                    MDTextFieldHintText:
+                        markup: True
+                        text: "[b]Tema (EJ: Integrales impropias)[/b]"
+                        text_color_normal: ("black" if app.root.tema == "Claro" else "white")
+                        text_color_focus: ("black" if app.root.tema == "Claro" else "white")
+
+            MDCard:
+                size_hint: 1, 0.1
+                theme_bg_color: "Custom"
+                md_bg_color: app.root.color_fondo_claro
+                radius: 0
+                MDTextField:
+                    id: campo_autor_profesor
+                    mode: "filled"
+                    text: "Anónimo"
+                    input_type: "text"
+                    write_tab: False
+                    size_hint_x: 1
+                    allow_copy: False
+                    use_bubble: False
+                    pos_hint: {'center_x': 0.5,'center_y': 0.5}
+                    theme_bg_color: "Custom"
+                    fill_color_normal: [1,1,1,0]
+                    fill_color_focus: [.9,.9,.9,0.1]
+                    theme_line_color: "Custom"
+                    line_color_normal: [1,1,1,0] 
+                    line_color_focus: [1,1,1,0]
+                    theme_text_color: "Custom"
+                    text_color_normal: ("black" if app.root.tema == "Claro" else "white")
+                    text_color_focus: ("black" if app.root.tema == "Claro" else "white")
+                    MDTextFieldHintText:
+                        markup: True
+                        text: "[b]Autor / Profesor[/b]"
+                        text_color_normal: ("black" if app.root.tema == "Claro" else "white")
+                        text_color_focus: ("black" if app.root.tema == "Claro" else "white")
+
+            MDCard:
+                size_hint: 1, 0.12
+                theme_bg_color: "Custom"
+                md_bg_color: app.root.color_fondo_claro
+                radius: 0
+                orientation: "vertical"
+                on_release: root.seleccionar_unidad("Todas")
+                MDRelativeLayout:
+                    size_hint: 1, 0.5
+                    MDLabel:
+                        halign: "left"
+                        valign: "middle"
+                        markup: True
+                        text: f"    [b]Unidad: {root.unidad}[/b]"
+                        theme_font_size: "Custom"
+                        font_size: "18sp"
+                MDBoxLayout:
+                    size_hint: 1, 0.5
+                    orientation: "horizontal"
+                    padding: [dp(5), 0]
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: root.seleccionar_unidad("I")
+                        MDButtonText:
+                            text: "I"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: root.seleccionar_unidad("II")
+                        MDButtonText:
+                            text: "II"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: root.seleccionar_unidad("III")
+                        MDButtonText:
+                            text: "III"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: root.seleccionar_unidad("IV")
+                        MDButtonText:
+                            text: "IV"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: root.seleccionar_unidad("V")
+                        MDButtonText:
+                            text: "V"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: root.seleccionar_unidad("VI")
+                        MDButtonText:
+                            text: "VI"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+
+            MDDivider:
+
+            MDCard:
+                size_hint: 1, 0.1
+                theme_bg_color: "Custom"
+                md_bg_color: app.root.color_fondo_claro
+                radius: 0
+                on_release: root.abrir_menu_categoria(self)
+
+                MDLabel:
+                    markup: True
+                    text: f"    [b]Categoria:[/b]\n    {root.categoria}"
+                    halign: "left"
+                    size_hint: 1, 1
+                    theme_font_size: "Custom"
+                    font_size: "18sp"
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                
+            MDCard:
+                size_hint: 1, 0.1
+                theme_bg_color: "Custom"
+                md_bg_color: app.root.color_fondo_claro
+                radius: 0
+
+                MDLabel:
+                    markup: True
+                    text: f"    [b]Tipo de archivo:[/b]\n    {root.tipo}"
+                    halign: "left"
+                    size_hint: 1, 1
+                    theme_font_size: "Custom"
+                    font_size: "18sp"
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+            MDCard:
+                size_hint: 1, 0.1
+                theme_bg_color: "Custom"
+                md_bg_color: app.root.color_fondo_claro
+                radius: 0
+
+                MDLabel:
+                    markup: True
+                    text: f"    [b]Tamaño:[/b]\n    {root.peso_documento}MB"
+                    halign: "left"
+                    size_hint: 1, 1
+                    theme_font_size: "Custom"
+                    font_size: "18sp"
+                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+            MDDivider:
+
+            MDBoxLayout:
+                size_hint: 1, 0.1
+                orientation: "vertical"
+                MDButton:
+                    style: "filled"
+                    pos_hint: {"center_x": .5}
+                    theme_bg_color: "Custom"
+                    md_bg_color: app.root.CYAN
+                    on_release: app.root.subir_archivo()
+                    MDButtonText:
+                        text: "Subir archivo"
+                        theme_text_color: "Custom"
+                        text_color: "black"
+                    MDButtonIcon:
+                        icon: "file-upload"
+                        theme_icon_color: "Custom"
+                        icon_color: "black"
+
+
+            MDBoxLayout:
+                size_hint: 1, 0.08
+
+
+
 <Widget_Principal>
     Screen:
         name: "Inicio"
@@ -1914,6 +2751,16 @@
                     MDNavigationItemIcon:
                         icon: "clock"
 
+                MDNavigationItem:
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    active: root.repositorio_active
+                    MDNavigationItemLabel:
+                        text:"Repositorio"
+                    MDNavigationItemIcon:
+                        icon: "book-multiple"
+
     Screen:
         name: "Índice"
         MDBoxLayout:
@@ -2063,6 +2910,17 @@
                         text:"Horario"
                     MDNavigationItemIcon:
                         icon: "clock"
+
+                MDNavigationItem:
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    active: root.repositorio_active
+                    MDNavigationItemLabel:
+                        text:"Repositorio"
+                    MDNavigationItemIcon:
+                        icon: "book-multiple"
+
     
         MDFloatLayout:
             MDFabButton:
@@ -2253,6 +3111,16 @@
                         text:"Horario"
                     MDNavigationItemIcon:
                         icon: "clock"
+
+                MDNavigationItem:
+                    theme_indicator_color: "Custom"
+                    indicator_color: root.AZUL_MAS_CLARO
+                    indicator_duration: 0.03
+                    active: root.repositorio_active
+                    MDNavigationItemLabel:
+                        text:"Repositorio"
+                    MDNavigationItemIcon:
+                        icon: "book-multiple"
 
                     
     
