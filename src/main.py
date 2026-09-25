@@ -36,7 +36,7 @@ from kivy.properties import (StringProperty, ObjectProperty, BooleanProperty,
     ColorProperty)
 from kivymd.uix.navigationbar import MDNavigationBar, MDNavigationItem
 from kivymd.uix.selectioncontrol import MDCheckbox
-from kivymd.uix.textfield import MDTextField
+from kivymd.uix.textfield import MDTextField, MDTextFieldLeadingIcon, MDTextFieldHintText
 from kivymd.uix.dialog import (
     MDDialog,
     MDDialogSupportingText,
@@ -45,28 +45,31 @@ from kivymd.uix.dialog import (
     MDDialogContentContainer,
     MDDialogIcon,
 )
+from kivymd.uix.progressindicator import MDLinearProgressIndicator, MDCircularProgressIndicator
 from kivy.clock import Clock, mainthread
 from kivymd.uix.scrollview import MDScrollView
 from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.divider import MDDivider
 from kivymd.uix.button import MDButton, MDButtonText, MDIconButton, MDButtonIcon
 from kivymd.uix.widget import Widget
-from kivymd.uix.snackbar import MDSnackbar, MDSnackbarText, MDSnackbarSupportingText
+from kivymd.uix.snackbar import MDSnackbar, MDSnackbarText, MDSnackbarSupportingText, MDSnackbarButtonContainer, MDSnackbarActionButton, MDSnackbarActionButtonText
 from src.data_manager import cargar_datos, migrar_datos
 from kivymd.uix.label import MDLabel
 from kivymd.uix.relativelayout import MDRelativeLayout
 from kivy.animation import Animation
 from src.expansionpanel import FMDExpansionPanel
 from kivy.resources import resource_add_path
+from kivy.storage.jsonstore import JsonStore
+
 
 #Importaciones de modulos
 from src.utils import (get_height_of_bar, set_status_bar_color, get_android_api,
     set_status_bar_icons_dark, set_navigation_bar_black, VERSION,
     URL_BASE_DATOS_HORARIO, URL_VERSION_HORARIO, interpolar_nota, MAX_ELECTIVAS)
-from src.utils.secrets import REWARDED, INTERSTITIAL
+from src.utils.secrets import REWARDED, INTERSTITIAL, PROJECT_ID, BASE_URL, DATABASE_ID, COLLECTION_ID, BUCKET_ID
 from src.views.screens import (Acerca, DescargoResponsabilidad, Colaboradores,
     Licencias, GenerarHorario, Configuracion, Login, Horario, Evaluaciones,
-    Estadisticas)
+    Estadisticas, Repositorio, Listado, Upload)
 from src.views.custom_widgets import (BoxLayoutElevated, CustomMDScrollView, BoxConRipple, BoxConRippleIndice,
     LabelListaIndice, CampoTextoListaIndice, BoxConRipplePensum, LabelListaPensum,
     CheckBoxPensum, CampoTextoHorario, SelectableRecycleBoxLayout, SelectableLabel, RV,
@@ -111,6 +114,9 @@ DIR_RAIZ = dirname(DIR_ACTUAL)
 RUTA_ASSETS = join(DIR_RAIZ, 'assets')
 resource_add_path(RUTA_ASSETS)
 
+#RUTA COOKIES SESION
+STORE = JsonStore(os.path.join(RUTA_DATOS, "sesion.json"))
+
 def run_in_thread(fn):
     def run(*k, **kw):
         t = threading.Thread(target=fn, args=k, kwargs=kw, daemon=True)
@@ -150,6 +156,7 @@ class Widget_Principal(ScreenManager):
     inicio_active = BooleanProperty(True)
     notas_active = BooleanProperty(False)
     horario_active = BooleanProperty(False)
+    repositorio_active = BooleanProperty(False)
     # Verificar si ya se han creado los widgets
     activado_bloques_horario = True
     # Retraso cambio de pantalla
@@ -196,6 +203,7 @@ class Widget_Principal(ScreenManager):
     guia_indice = True
     guia_pensum = True
     guia_horario = True
+    guia_repositorio = True
     # Colores tema
     tema = StringProperty()
     tema_ingles = "Dark"
@@ -228,6 +236,8 @@ class Widget_Principal(ScreenManager):
     horario = []
     secciones = []
     profesores = []
+    #repositorio
+    repositorio_cache = {}
 
     # Arranque de la app
     def __init__(self, **kwargs):
@@ -312,6 +322,11 @@ class Widget_Principal(ScreenManager):
         ]
         self.menu_appbar = MDDropdownMenu(
             caller=self.ids.BotonAppBar, items=menu_items_appbar
+        )
+
+        menu_items_repositorio = []
+        self.menu_repositorio = MDDropdownMenu(
+            caller=None, items=menu_items_repositorio, position = "bottom", max_height = dp(200)
         )
 
         Window.bind(on_keyboard=self.back_press)
@@ -399,6 +414,8 @@ class Widget_Principal(ScreenManager):
                 self.current = "Inicio" if self.inicio_active else "Índice"
             elif self.current == "Estadisticas":
                 self.current = "Índice"
+            elif self.current == "Listado":
+                self.current = "Repositorio"
             elif self.current != "Inicio" and self.current != "Login":
                 self.notas_active = False
                 self.pensum_active = False
@@ -558,6 +575,7 @@ class Widget_Principal(ScreenManager):
                 self.guia_indice = datos_usuario["guia_indice"]
                 self.guia_pensum = datos_usuario["guia_pensum"]
                 self.guia_horario = datos_usuario["guia_horario"]
+                self.guia_repositorio = (datos_usuario["guia_repositorio"] if "guia_repositorio" in datos_usuario.keys() else True)
                 version_guardada = datos_usuario["version"]
                 self.tema_ingles = datos_usuario["tema"]
                 datos_cargados = True
@@ -714,6 +732,7 @@ class Widget_Principal(ScreenManager):
             self.pensum_active = False
             self.inicio_active = False
             self.horario_active = False
+            self.repositorio_active = False
 
         elif item_text == "Pensum":
             if self.current == "Índice" or self.current == "Inicio":
@@ -725,12 +744,14 @@ class Widget_Principal(ScreenManager):
             self.pensum_active = True
             self.inicio_active = False
             self.horario_active = False
+            self.repositorio_active = False
 
         elif item_text == "Inicio":
             self.notas_active = False
             self.pensum_active = False
             self.inicio_active = True
             self.horario_active = False
+            self.repositorio_active = False
             self.transition = SlideTransition(direction="right")
             if self.current != "Índice" and self.current != "Horario":
                 Clock.schedule_once(lambda dt: self.mostrar_materias_inicio(), 0.5)
@@ -750,6 +771,7 @@ class Widget_Principal(ScreenManager):
             self.pensum_active = False
             self.inicio_active = False
             self.horario_active = True
+            self.repositorio_active = False
             self.transition = SlideTransition(direction="left")
             self.current = "Horario"
             if self.firts_update_horario:
@@ -758,6 +780,21 @@ class Widget_Principal(ScreenManager):
             if self.guia_horario:
                 Clock.schedule_once(self.mostrar_guia_horario, 1)
             self.transition = SlideTransition(direction="right")
+
+        elif item_text == "Repositorio":
+            if not self.has_screen("Repositorio"):
+                self.add_widget(Repositorio())
+                self.pantalla_repositorio = self.get_screen("Repositorio")
+                if self.sesion_activa():
+                    self.buscar_datos_cuenta()
+            self.current = "Repositorio"
+            self.repositorio_active = True
+            self.notas_active = False
+            self.pensum_active = False
+            self.inicio_active = False
+            self.horario_active = False
+            if self.guia_repositorio:
+                Clock.schedule_once(self.mostrar_guia_repositorio, 1)
 
         Clock.schedule_once(self.activar_navegacion, 1)
         # Mostrar Anuncio instersticial
@@ -822,6 +859,7 @@ class Widget_Principal(ScreenManager):
                 "guia_indice": self.guia_indice,
                 "guia_pensum": self.guia_pensum,
                 "guia_horario": self.guia_horario,
+                "guia_repositorio": self.guia_repositorio,
                 "version": VERSION,
                 "tema": self.tema_ingles}
                 json.dump(datos_usuario, datos, indent = 4)
@@ -4774,12 +4812,998 @@ class Widget_Principal(ScreenManager):
     def activar_panel(self):
         self.panel_activado = True
 
+    # -----------------------
+    # PANTALLA DE REPOSITORIO 
+    # -----------------------
+
+    def mostrar_guia_repositorio(self, *args):
+        if self.guia_repositorio:
+            dialogo_informacion = MDDialog(
+                MDDialogIcon(
+                    icon="information",
+                    theme_icon_color="Custom",
+                    icon_color=self.AZUL_CLARO,
+                ),
+                MDDialogHeadlineText(text="[b]Guía de [i]Repositorio[/i][/b]"),
+                MDDialogSupportingText(
+                    text="Información de repositorio",
+                    markup=True,
+                    halign="left",
+                ),
+                size_hint_x=0.9,
+                size_hint_y=None,
+                radius=dp(10),
+                ripple_duration_in_fast=0,
+                ripple_duration_in_slow=0,
+                theme_focus_color="Custom",
+                focus_color=[1, 1, 1, 0],
+                padding="0dp",
+                state_press=0,
+                auto_dismiss=False,
+            )
+            boton = MDDialogButtonContainer(
+                Widget(),
+                MDButton(
+                    MDButtonText(
+                        text="[b]Cerrar[/b]",
+                        theme_text_color="Custom",
+                        text_color=self.CYAN,
+                        markup=True,
+                    ),
+                    on_release=lambda instance, x=dialogo_informacion: self.cerrar_dialogo(x),
+                    style="text",
+                ),
+            )
+            dialogo_informacion.add_widget(boton)
+            dialogo_informacion.open()
+            self.guia_repositorio = False
+            self.guardar_datos_usuario()
+
+    def actualizar_menu_manterias(self, obj, inscritas = False, repositorio = True):
+        menu_items_repositorio = []
+        lista_materias = self.get_materias()
+        self.menu_repositorio.caller = obj
+        if inscritas:
+            for materia in lista_materias:
+                if materia.inscrita:
+                    menu_items_repositorio.append({
+                            "text": materia.nombre,
+                            "on_release": lambda x=materia.codigo: self.seleccionar_materia_repo(x),
+                        })
+            if not menu_items_repositorio:
+                MDSnackbar(
+                    MDSnackbarText(
+                        text="No hay materias inscritas",
+                        markup=True,
+                        theme_text_color="Custom",
+                        text_color=self.LETRA_FUERTE,
+                    ),
+                    duration=5,
+                    pos_hint={"center_x": 0.5},
+                    y=dp(5),
+                    size_hint_x=0.95,
+                    theme_bg_color="Custom",
+                    background_color=self.color_fondo_mas_claro,
+                ).open()
+                return
+
+        else:
+            if repositorio:
+                for materia in lista_materias:
+                    menu_items_repositorio.append({
+                            "text": materia.nombre,
+                            "on_release": lambda x=materia.codigo: self.seleccionar_materia_repo(x),
+                        })
+            else:
+                for materia in lista_materias:
+                    menu_items_repositorio.append({
+                            "text": materia.nombre,
+                            "on_release": lambda x=materia.codigo: self.seleccionar_materia_upload(x),
+                        })
+
+        self.menu_repositorio.items = menu_items_repositorio
+        self.menu_repositorio.open()
+
+    def seleccionar_materia_repo(self, codigo):
+        if self.menu_repositorio.open:
+            self.menu_repositorio.dismiss()
+        materia = self.materias_dict[codigo]
+        pantalla_repositorio = self.get_screen("Repositorio")
+        pantalla_repositorio.materia = materia.nombre
+        pantalla_repositorio.codigo_materia = materia.codigo
+        pantalla_repositorio.nro_parciales = 0
+        pantalla_repositorio.nro_libros = 0
+        pantalla_repositorio.nro_apuntes = 0
+        pantalla_repositorio.nro_guias_teoricas = 0
+        pantalla_repositorio.nro_guias_ejercicios = 0
+        pantalla_repositorio.nro_otros = 0
+        def documentos_recibidos(docs):
+            if not docs:
+                return
+            else:
+                for doc in docs:
+                    if doc["categoria"] == "Parciales y prácticas": pantalla_repositorio.nro_parciales += 1
+                    elif doc["categoria"] == "Libros y documentos": pantalla_repositorio.nro_libros += 1
+                    elif doc["categoria"] == "Apuntes y notas": pantalla_repositorio.nro_apuntes += 1
+                    elif doc["categoria"] == "Guías Teóricas": pantalla_repositorio.nro_guias_teoricas += 1
+                    elif doc["categoria"] == "Guías de ejercicios":pantalla_repositorio.nro_guias_ejercicios += 1
+                    elif doc["categoria"] == "Otros": pantalla_repositorio.nro_otros += 1
+                    
+        self.consultar_documentos(codigo, documentos_recibidos)
+
+    def consultar_documentos(self, codigo, callback):
+        if codigo in self.repositorio_cache.keys():
+            return callback(self.repositorio_cache[codigo])
+
+        import urllib.parse
+        
+        # 1. La sintaxis obligatoria de Appwrite REST API es un objeto JSON
+        consulta_dict = {
+            "method": "equal",
+            "attribute": "cod_materia",
+            "values": [codigo]
+        }
+        
+        # 2. Convertimos el diccionario a un string JSON sin espacios residuales
+        consulta_json = json.dumps(consulta_dict, separators=(',', ':'))
+        
+        # 3. Empaquetamos el string JSON dentro del parámetro queries[] y codificamos la URL
+        parametros_seguros = urllib.parse.urlencode({'queries[]': consulta_json})
+        
+        url = f"{BASE_URL}/databases/{DATABASE_ID}/collections/{COLLECTION_ID}/documents?{parametros_seguros}"
+        
+        def exito(req, result):
+            documentos = result.get('documents', [])
+            self.repositorio_cache[codigo] = documentos
+            return callback(documentos)
+            
+        def fallo(req, result): 
+            MDSnackbar(MDSnackbarText(text='Error al consultar materia', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+
+        def error_red(req, result):
+            MDSnackbar(MDSnackbarText(text='Error de conexión.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            
+        UrlRequest(url, req_headers=self.get_headers(requiere_auth=False), method='GET', on_success=exito, on_failure=fallo, on_error=error_red)
+
+    def get_headers(self, requiere_auth=False):
+        headers = {
+            "Content-Type": "application/json",
+            "X-Appwrite-Project": PROJECT_ID
+        }
+        if requiere_auth and store.exists('auth'):
+            headers['Cookie'] = store.get('auth')['cookie']
+        return headers
+
+    def sesion_activa(self):
+        return STORE.exists('auth')
+
+    def dialogo_sesion(self, *args):
+        if self.sesion_activa():
+            dialogo_informacion = MDDialog(
+            MDDialogIcon(
+                icon="account-check",
+                theme_icon_color="Custom",
+                icon_color=self.AZUL_CLARO,
+            ),
+            MDDialogHeadlineText(text="[b]Sesión Iniciada[/b]"),
+            MDDialogSupportingText(
+                text=f"Bienvenido, {self.pantalla_repositorio.nombre_usuario}.\n{("Tu email está verificado." if self.pantalla_repositorio.email_verification else "Tu email no está verificado.")}",
+                markup=True,
+                halign="center",
+            ),
+            size_hint_x=0.95,
+            size_hint_y=None,
+            radius=dp(10),
+            ripple_duration_in_fast=0,
+            ripple_duration_in_slow=0,
+            theme_focus_color="Custom",
+            focus_color=[1, 1, 1, 0],
+            padding="0dp",
+            state_press=0,
+            auto_dismiss=True,
+            )
+            boton = MDDialogButtonContainer(
+            Widget(),
+            MDButton(
+                MDButtonText(
+                    text="[b]Cerrar[/b]",
+                    theme_text_color="Custom",
+                    text_color=self.CYAN,
+                    markup=True,
+                ),
+                on_release=lambda instance, x=dialogo_informacion: self.cerrar_dialogo(x),
+                style="text",
+            ),
+            )
+            btn_cerrar_sesion = MDButton(
+                                MDButtonText(
+                                markup = True,
+                                text = "[color=#000000][b]Cerrar Sesión[/b][/color]"),
+                            style = "filled",
+                            pos_hint = {"center_x": 0.5},
+                            on_release = lambda instance, x = dialogo_informacion: self.cerrar_sesion(x),
+                            theme_bg_color = "Custom",
+                            md_bg_color = self.CYAN)
+
+            content = MDDialogContentContainer(btn_cerrar_sesion,
+                                    orientation = "vertical", spacing = dp(20))
+            dialogo_informacion.add_widget(content)
+            dialogo_informacion.add_widget(boton)
+            dialogo_informacion.open()
+
+        else:
+            app = MDApp.get_running_app()
+            campo_correo = MDTextField(
+                                MDTextFieldLeadingIcon(
+                                    icon = "email",
+                                    theme_icon_color = "Custom",
+                                    icon_color_normal = self.LETRA_FUERTE,
+                                    icon_color_focus = self.LETRA_FUERTE),
+                                MDTextFieldHintText(
+                                    markup = True,
+                                    text = "Correo",
+                                    text_color_normal = self.LETRA_FUERTE,
+                                    text_color_focus = self.AZUL_OSCURO),
+                                    mode = "filled",
+                                    input_type = "text",
+                                    validator = "email",
+                                    write_tab = False,
+                                    size_hint_x = 1,
+                                    use_bubble = False,
+                                    theme_bg_color = "Custom",
+                                    fill_color_normal = [1,1,1,0],
+                                    fill_color_focus = [.9,.9,.9,0.1],
+                                    theme_line_color = "Custom",
+                                    line_color_normal = self.AZUL_CLARO,
+                                    line_color_focus = self.AZUL_OSCURO,
+                                    theme_text_color = "Custom",
+                                    text_color_normal = self.LETRA_FUERTE,
+                                    text_color_focus = self.LETRA_FUERTE,
+                                    )
+            campo_contraseña = MDTextField(
+                                MDTextFieldLeadingIcon(
+                                    icon = "lock",
+                                    theme_icon_color = "Custom",
+                                    icon_color_normal = self.LETRA_FUERTE,
+                                    icon_color_focus = self.LETRA_FUERTE),
+                                MDTextFieldHintText(
+                                    markup = True,
+                                    text = "Contraseña",
+                                    text_color_normal = self.LETRA_FUERTE,
+                                    text_color_focus = self.AZUL_OSCURO),
+                                    password = True,
+                                    mode = "filled",
+                                    input_type = "text",
+                                    write_tab = False,
+                                    size_hint_x = 1,
+                                    use_bubble = False,
+                                    theme_bg_color = "Custom",
+                                    fill_color_normal = [1,1,1,0],
+                                    fill_color_focus = [.9,.9,.9,0.1],
+                                    theme_line_color = "Custom",
+                                    line_color_normal = self.AZUL_CLARO,
+                                    line_color_focus = self.AZUL_OSCURO,
+                                    theme_text_color = "Custom",
+                                    text_color_normal = self.LETRA_FUERTE,
+                                    text_color_focus = self.LETRA_FUERTE,
+                                    )
+
+            dialogo_informacion = MDDialog(
+                MDDialogIcon(
+                    icon="account-check",
+                    theme_icon_color="Custom",
+                    icon_color=self.AZUL_CLARO,
+                ),
+                MDDialogHeadlineText(text="[b]Iniciar Sesión[/b]"),
+                MDDialogSupportingText(
+                    text="Inicia sesión en tu cuenta para poder compartir archivos en el repositorio.",
+                    markup=True,
+                    halign="center",
+                ),
+                size_hint_x=0.95,
+                size_hint_y=None,
+                radius=dp(10),
+                ripple_duration_in_fast=0,
+                ripple_duration_in_slow=0,
+                theme_focus_color="Custom",
+                focus_color=[1, 1, 1, 0],
+                padding="0dp",
+                state_press=0,
+                auto_dismiss=True,
+            )
+            btn_iniciar_sesion = MDButton(
+                                    MDButtonText(
+                                    markup = True,
+                                    text = "[color=#000000][b]Iniciar Sesión[/b][/color]"),
+                                style = "filled",
+                                pos_hint = {"center_x": 0.5},
+                                on_release = lambda instance, e = campo_correo, p = campo_contraseña, x = dialogo_informacion: self.iniciar_sesion(e, p, x),
+                                theme_bg_color = "Custom",
+                                md_bg_color = self.CYAN)
+
+            content = MDDialogContentContainer(campo_correo,
+                                        campo_contraseña,
+                                        btn_iniciar_sesion,
+                                        MDLabel(text = "\n\n¿No tienes una cuenta?\n[b][u][ref=crearcuenta]Crea una aquí[/ref][/u][/b]\n",
+                                        halign = "center",
+                                        markup = True,
+                                        on_ref_press = lambda x, ref: app.abrir_enlace(ref)),
+                                        orientation = "vertical", spacing = dp(20))
+            boton = MDDialogButtonContainer(
+                Widget(),
+                MDButton(
+                    MDButtonText(
+                        text="[b]Cerrar[/b]",
+                        theme_text_color="Custom",
+                        text_color=self.CYAN,
+                        markup=True,
+                    ),
+                    on_release=lambda instance, x=dialogo_informacion: self.cerrar_dialogo(x),
+                    style="text",
+                ),
+            )
+            dialogo_informacion.add_widget(content)            
+            dialogo_informacion.add_widget(boton)
+            dialogo_informacion.open()
+
+    def get_headers(self, requiere_auth=False):
+        headers = {
+            "Content-Type": "application/json",
+            "X-Appwrite-Project": PROJECT_ID
+        }
+        if requiere_auth and STORE.exists('auth'):
+            headers['Cookie'] = STORE.get('auth')['cookie']
+        return headers
+
+    def iniciar_sesion(self, email, password, dlg):
+        Logger.info("--- EJECUTANDO INICIO DE SESIÓN ---")
+        if email.error:
+            MDSnackbar(MDSnackbarText(text='Correo inválido.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            return
+        elif password.text == "":
+            MDSnackbar(MDSnackbarText(text='Ingresa una contraseña.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            return
+        url = f"{BASE_URL}/account/sessions/email"
+        body = json.dumps({"email": email.text, "password": password.text})
+        
+        def exito(req, result, dlg):
+            headers = req.resp_headers
+            cookie_header = next((str(v) for k, v in headers.items() if k.lower() == 'set-cookie'), None)
+            if cookie_header:
+                STORE.put('auth', cookie=cookie_header.split(';')[0], user_id=result.get('userId'))
+                MDSnackbar(MDSnackbarText(text='Sesión Iniciada!', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+                self.buscar_datos_cuenta()
+                self.cerrar_dialogo(dlg)
+            else:
+                MDSnackbar(MDSnackbarText(text='Error al iniciar sesión.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+                
+        def fallo(req, result):
+            Logger.info("Fallo en Login")
+            if result["code"] == 400 or result["code"] == 401:
+                MDSnackbar(
+                MDSnackbarText(text='Datos Inválidos', halign="left"),
+                MDSnackbarSupportingText(
+                    text="Email o contraseña incorrectos"
+                ), duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            else:
+                MDSnackbar(MDSnackbarText(text='Error al iniciar sesión.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+
+        UrlRequest(url, req_body=body, req_headers=self.get_headers(), on_success=lambda x,y, dlg=dlg: exito(x,y,dlg), on_failure=fallo)
+
+    def buscar_datos_cuenta(self):
+        if not self.sesion_activa():
+            return
+        url = f"{BASE_URL}/account"
+        def exito(req, result):
+            self.pantalla_repositorio.email_verification = result["emailVerification"]
+            self.pantalla_repositorio.nombre_usuario = result["name"]
+        def fallo(req, result): 
+            MDSnackbar(MDSnackbarText(text='Error al obtener datos de la cuenta', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+        def error_red(req, result):
+            MDSnackbar(MDSnackbarText(text='Error de conexión.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+        UrlRequest(url, req_headers=self.get_headers(requiere_auth=True), on_success=exito, on_failure=fallo, on_error=error_red)
+
+    def cerrar_sesion(self, dlg):
+        if not self.sesion_activa(): return
+        url = f"{BASE_URL}/account/sessions/current"
+        def exito(req, result):
+            STORE.delete('auth')
+            MDSnackbar(MDSnackbarText(text='Sesión Cerrada.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.pantalla_repositorio.email_verification = False
+            self.pantalla_repositorio.nombre_usuario = ""
+            dlg.dismiss()
+        def fallo(req, result):
+            MDSnackbar(MDSnackbarText(text='Fallo al cerrar sesión', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+
+        def error_red(req, result):
+            MDSnackbar(MDSnackbarText(text='Error de conexión.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+
+        UrlRequest(url, req_headers=self.get_headers(requiere_auth=True), method='DELETE', on_success=exito, on_failure=fallo, on_error=error_red)
+
+    def limpiar_cache(self):
+        self.repositorio_cache = {}
+        if self.pantalla_repositorio.codigo_materia:
+            self.seleccionar_materia_repo(self.pantalla_repositorio.codigo_materia)
+
+        MDSnackbar(MDSnackbarText(text=f'Repositorio actualizado!', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+
+    # -----------------------
+    # PANTALLA DE LISTADO 
+    # -----------------------
+
+    def ir_a_listado(self, categoria, nro_archivos):
+        if nro_archivos == 0:
+            MDSnackbar(MDSnackbarText(text=f'No hay archivos en {categoria}', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            return
+        if not self.has_screen("Listado"):
+            self.add_widget(Listado())
+            self.pantalla_listado = self.get_screen("Listado")
+        self.current = "Listado"
+        self.pantalla_listado.materia = self.pantalla_repositorio.materia
+        self.pantalla_listado.categoria = categoria
+        self.mostrar_documentos_listado()
+
+    def mostrar_documentos_listado(self, filtro_unidad = None):
+        codigo = self.pantalla_repositorio.codigo_materia
+        categoria = self.pantalla_listado.categoria
+        documentos = self.repositorio_cache[codigo]
+        unidades = ["Todas","I", "II", "III", "IV", "V", "VI"]
+        tipo_a_icono = {"PDF": "file-pdf-box", "Hoja de Excel": "file-excel",
+                        "Documento de word": "file-word", "Imagen": "file-image",
+                        "Libro": "file-document"}
+        if filtro_unidad:
+            if filtro_unidad != "Todas":
+                unidades = [filtro_unidad]
+            self.pantalla_listado.unidad = filtro_unidad
+
+        def cargar_datos(self):
+            datos_rv = []
+                
+            for doc in documentos:
+                if doc["categoria"] == categoria and not doc["oculto"] and doc["unidad"] in unidades:
+                    datos_rv.append({
+                        "viewclass": "CardArchivo",
+                        "nombre_documento": doc["nombre_documento"][:32],
+                        "tipo": doc["tipo"],
+                        "nombre_autor": doc["nombre_autor"],
+                        "reportes": doc["reportes"],
+                        "peso_documento": doc["peso_documento"],
+                        "unidad": doc["unidad"],
+                        "url_archivo": doc["url_archivo"],
+                        "createdAt": doc["$createdAt"][:10],
+                        "icono": tipo_a_icono.get(doc["tipo"], ""),
+                        "id": doc["$id"]
+                        })
+
+            Clock.schedule_once(lambda dt: self._actualizar_ui_listado(datos_rv))
+
+        threading.Thread(target=cargar_datos, args=(self,)).start()
+
+    def _actualizar_ui_listado(self, datos_rv):
+        self.pantalla_listado.ids.rv_listado.data = datos_rv
+
+    def descargar_documento(self, url, nombre_archivo, unidad, peso):
+        app = MDApp.get_running_app()
+        try:
+            temp = None
+            if platform == "android":
+                temp = self.ss.get_cache_dir()
+            else:
+                temp = RUTA_ARCHIVOS
+            nombre_destino = os.path.join(temp, "Repositorio", self.pantalla_listado.materia, unidad, nombre_archivo)
+            destino = os.path.dirname(nombre_destino)
+            os.makedirs(destino, exist_ok=True)
+        except Exception as e:
+            Logger.error(f"Error al construir ruta de destino {e}")
+
+        dialogo_informacion = MDDialog(
+                MDDialogIcon(
+                    icon="download",
+                    theme_icon_color="Custom",
+                    icon_color=self.AZUL_CLARO,
+                ),
+                MDDialogHeadlineText(text="[b]Descargando...[/b]"),
+                MDDialogSupportingText(
+                    text="No cierres la aplicación.",
+                    markup=True,
+                    halign="center",
+                ),
+                size_hint_x=0.8,
+                size_hint_y=None,
+                radius=dp(10),
+                ripple_duration_in_fast=0,
+                ripple_duration_in_slow=0,
+                theme_focus_color="Custom",
+                focus_color=[1, 1, 1, 0],
+                padding="0dp",
+                state_press=0,
+                auto_dismiss=False,
+                )
+
+        self.progress_indicator = MDLinearProgressIndicator(size_hint_x = 1, value = 0, pos_hint = {"center_x": .5, "center_y": .5})
+        content = MDDialogContentContainer(self.progress_indicator,
+                                orientation = "vertical", spacing = dp(20))
+        dialogo_informacion.add_widget(content)
+        dialogo_informacion.open()
+
+
+        def exito(req, result):
+            dialogo_informacion.dismiss()
+            archivo = "prueba"
+            if platform == "android":
+                archivo = app.ss.copy_to_shared(nombre_destino, filepath=join("Repositorio", self.pantalla_listado.materia, unidad, nombre_archivo))
+                MDSnackbar(MDSnackbarSupportingText(text='Archivo descargado.', halign="left"),
+                            MDSnackbarButtonContainer(
+                                MDSnackbarActionButton(
+                                    MDSnackbarActionButtonText(text = "Abrir"), on_release = lambda a=archivo: self.open_file(archivo),
+                                    ),
+                                ),
+                        duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            else:
+                MDSnackbar(MDSnackbarText(text='Archivo descargado correctamente.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+                
+            
+        def fallo(req, result):
+            Logger.error(f"{result}")
+            MDSnackbar(MDSnackbarText(text='Error al descargar.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            eliminar_archivo_corrupto(nombre_destino)
+            dialogo_informacion.dismiss()
+            
+        def error_red(req, error):
+            Logger.error(f"{error}")
+            MDSnackbar(MDSnackbarText(text='Error de conexión.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            eliminar_archivo_corrupto(nombre_destino)
+            dialogo_informacion.dismiss()
+
+        def eliminar_archivo_corrupto(ruta):
+            # Kivy libera el archivo al terminar la petición, por lo que podemos borrarlo inmediatamente
+            if os.path.exists(ruta):
+                os.remove(ruta)
+                Logger.info("Se borró el archivo residual debido a un error al descargar.")
+
+        def progreso(req, bytes_descargados, tamaño_total):
+            descargado = bytes_descargados / 10**6
+            print(f"Red: {bytes_descargados} bytes  {descargado}/ Total reportado por servidor: {tamaño_total} {peso}", end="\r")
+            self.progress_indicator.value = round((descargado / peso) * 100)
+
+        # Ejecutamos la petición inyectando file_path para forzar la escritura en disco
+        UrlRequest(
+            url,
+            file_path=nombre_destino,
+            req_headers=self.get_headers(requiere_auth=False),
+            on_success=exito,
+            on_failure=fallo,
+            on_error=error_red,
+            on_progress=progreso
+        )
+
+    def open_file(self, archivo):
+        from androidstorage4kivy import ShareSheet
+        ss = ShareSheet()
+        ss.view_file(archivo)
+
+    def dialogo_reporte(self, documento_id):
+        dialogo_informacion = MDDialog(
+                MDDialogIcon(
+                    icon="exclamation-thick",
+                    theme_icon_color="Custom",
+                    icon_color="red",
+                ),
+                MDDialogHeadlineText(text="[b]¿Reportar Archivo?[/b]"),
+                MDDialogSupportingText(
+                    text=f"[b]Reporta este archivo si:[/b]\n\n- La información es incorrecta (materia, categoria, etc).\n- El archivo está dañado.\n- El archivo está duplicado. \n- El archivo contiene información personal o sensible.\n\n [b]Los archivos se envían a revisión al alcanzar cierto número de reportes.[/b]",
+                    markup=True,
+                    halign="left",
+                ),
+                size_hint_x=0.95,
+                size_hint_y=None,
+                radius=dp(10),
+                ripple_duration_in_fast=0,
+                ripple_duration_in_slow=0,
+                theme_focus_color="Custom",
+                focus_color=[1, 1, 1, 0],
+                padding="0dp",
+                state_press=0,
+                auto_dismiss=True,
+                )
+        boton = MDDialogButtonContainer(
+                    Widget(),
+                    MDButton(
+                        MDButtonText(
+                            text="[b]Cerrar[/b]",
+                            theme_text_color="Custom",
+                            text_color=self.CYAN,
+                            markup=True,
+                        ),
+                        on_release=lambda instance, x=dialogo_informacion: self.cerrar_dialogo(x),
+                        style="text",
+                    ),
+                    MDButton(
+                        MDButtonText(
+                            bold = True,
+                            text = "Reportar",
+                            theme_text_color="Custom",
+                            text_color="red",
+                        ),
+                        style = "text",
+                        on_release = lambda instance, x = dialogo_informacion, id = documento_id: self.reportar_archivo(x, id),
+                    ))
+
+        dialogo_informacion.add_widget(boton)
+        dialogo_informacion.open()
+
+    def reportar_archivo(self, dlg, documento_id):
+        dlg.dismiss()
+        Logger.info("\n--- INICIANDO PROTOCOLO DE REPORTE ---")
+        if not STORE.exists('auth'):
+            MDSnackbar(MDSnackbarText(text='Inicia sesión en una cuenta primero.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            return
+        if not self.pantalla_repositorio.email_verification:
+            MDSnackbar(MDSnackbarText(text='Tu email debe estar verificado.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            return
+
+        dialogo_informacion = MDDialog(
+            MDDialogIcon(icon="information", theme_icon_color="Custom", icon_color=self.AZUL_CLARO),
+            MDDialogHeadlineText(text="[b]Enviando reporte...[/b]"),
+            MDDialogSupportingText(
+                    text="No cierres la aplicación.",
+                    markup=True,
+                    halign="center",
+                ),
+            size_hint_x=0.8,
+            size_hint_y=None,
+            radius=dp(10),
+            ripple_duration_in_fast=0,
+            ripple_duration_in_slow=0,
+            theme_focus_color="Custom",
+            focus_color=[1, 1, 1, 0],
+            padding="0dp",
+            state_press=0,
+            auto_dismiss=False,
+        )
+        progress_indicator = MDCircularProgressIndicator(size_hint=(None, None), size=(dp(24), dp(24)), pos_hint={"center_x": .5, "center_y": .5})
+        content = MDDialogContentContainer(progress_indicator, orientation="vertical", spacing=dp(20))
+        dialogo_informacion.add_widget(content)
+        dialogo_informacion.open()
+
+        FUNCTION_ID = "6ab537430030e3895dc4"
+        url = f"{BASE_URL}/functions/{FUNCTION_ID}/executions"
+        
+        # El cuerpo que será recibido por context.req.body en el servidor
+        cuerpo_json = json.dumps({
+            "documento_id": documento_id
+        })
+        
+        # El endpoint de ejecuciones requiere que los datos viajen en formato de texto estricto
+        # encapsulados en el parámetro 'body' propio de la API REST de funciones, además debe ser async
+        body_request = json.dumps({
+            "body": cuerpo_json,
+            "async": False 
+        })
+        
+        def exito(req, result):
+            # Appwrite envuelve la respuesta de la función dentro del atributo 'responseBody'
+            dialogo_informacion.dismiss()
+            respuesta_cruda = result.get('responseBody', '{}')
+            try:
+                datos_funcion = json.loads(respuesta_cruda)
+                if datos_funcion.get('exito'):
+                    MDSnackbar(MDSnackbarText(text='Reporte procesado y enviado.', halign="left"),
+                        duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+                    if datos_funcion.get('oculto'):
+                        Logger.info("El sistema ha censurado automáticamente este archivo.")
+                else:
+                    MDSnackbar(MDSnackbarText(text=f'{datos_funcion.get('error')}.', halign="left"),
+                        duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            except Exception:
+                MDSnackbar(MDSnackbarText(text='Error en el servidor.', halign="left"),
+                        duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+                
+        def fallo(req, result):
+            dialogo_informacion.dismiss()
+            MDSnackbar(MDSnackbarText(text='Error en el servidor.', halign="left"),
+                        duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            
+        UrlRequest(url, req_body=body_request, req_headers=self.get_headers(requiere_auth=True), method='POST', on_success=exito, on_failure=fallo)
+
+    # -----------------------
+    # PANTALLA DE UPLOAD
+    # -----------------------
+
+    def ir_a_upload(self):
+        if not self.sesion_activa():
+            MDSnackbar(MDSnackbarText(text='Debes iniciar sesión en una cuenta primero.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            return
+
+        if not self.pantalla_repositorio.email_verification:
+            MDSnackbar(MDSnackbarText(text='No se ha podido verificar tu email.', halign="left"),
+            duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            return
+
+        if not self.has_screen("Upload"):
+            self.add_widget(Upload())
+            self.pantalla_upload = self.get_screen("Upload")
+
+        self.current = "Upload"
+
+    def seleccionar_materia_upload(self, codigo):
+        self.menu_repositorio.dismiss()
+        self.pantalla_upload.codigo_materia = codigo
+        self.pantalla_upload.materia = self.buscar_por_codigo(codigo).nombre
+
+    def seleccionar_archivo(self):
+        ruta = None
+        if platform == "win":
+            ruta = r""
+            self.archivo_seleccionado(ruta)
+        else: #Android
+            app = MDApp.get_running_app()
+            app.copia_seleccionada = False
+            app.chooser.choose_content("*/*")
+
+    def archivo_seleccionado(self, ruta):
+        if not os.path.isfile(ruta):
+            MDSnackbar(MDSnackbarText(text='El archivo no existe o es inválido', halign="left"),
+            duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            return
+
+        nombre = os.path.splitext(os.path.basename(ruta))[0]
+        _ , extension = os.path.splitext(ruta)
+        tamaño_bytes = os.path.getsize(ruta)
+        tamaño_mb = round(tamaño_bytes / (1000 * 1000), 2)
+        self.pantalla_upload.ruta = ruta
+        self.pantalla_upload.nombre_archivo = nombre
+        extension_a_tipo = {".pdf": "PDF", ".doc": "Documento de word", ".docx": "Documento de word",
+                            ".xls": "Hoja de Excel", ".xlsx": "Hoja de Excel", ".jpg": "Imagen",
+                            ".png": "Imagen", ".epub": "Libro"}
+        self.pantalla_upload.extension = extension
+        self.pantalla_upload.tipo = extension_a_tipo[extension]
+        self.pantalla_upload.peso_documento = tamaño_mb
+
+    def subir_archivo(self):
+        # --- BLOQUE 1: HILO PRINCIPAL (Validaciones e Interfaz) ---
+        pu = self.pantalla_upload
+        
+        if not pu.codigo_materia:
+            MDSnackbar(MDSnackbarText(text='Selecciona la materia.', halign="left"), duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            return
+        if pu.nombre_archivo == "---":
+            MDSnackbar(MDSnackbarText(text='Selecciona el archivo a subir.', halign="left"), duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            return
+        if not pu.ids.campo_tema.text:
+            MDSnackbar(MDSnackbarText(text='Escribe el tema del archivo.', halign="left"), duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            return
+        if not pu.ids.campo_autor_profesor.text:
+            MDSnackbar(MDSnackbarText(text='Escribe un autor/profesor.', halign="left"), duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            return
+        if pu.categoria == "---":
+            MDSnackbar(MDSnackbarText(text='Selecciona una categoria.', halign="left"), duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            return
+
+        ruta_archivo = pu.ruta
+        if not os.path.exists(ruta_archivo):
+            print(f"Error crítico: El archivo no existe en la ruta {ruta_archivo}")
+            return
+
+        nombre_archivo = f"{pu.ids.campo_tema.text}{pu.extension}"
+
+        # Construcción y bloqueo visual (MDDialog)
+        dialogo_informacion = MDDialog(
+            MDDialogIcon(icon="upload", theme_icon_color="Custom", icon_color=self.AZUL_CLARO),
+            MDDialogHeadlineText(text="[b]Subiendo...[/b]"),
+            MDDialogSupportingText(
+                    text="No cierres la aplicación.",
+                    markup=True,
+                    halign="center",
+                ),
+            size_hint_x=0.8,
+            size_hint_y=None,
+            radius=dp(10),
+            ripple_duration_in_fast=0,
+            ripple_duration_in_slow=0,
+            theme_focus_color="Custom",
+            focus_color=[1, 1, 1, 0],
+            padding="0dp",
+            state_press=0,
+            auto_dismiss=False,
+        )
+        progress_indicator = MDCircularProgressIndicator(size_hint=(None, None), size=(dp(24), dp(24)), pos_hint={"center_x": .5, "center_y": .5})
+        content = MDDialogContentContainer(progress_indicator, orientation="vertical", spacing=dp(20))
+        dialogo_informacion.add_widget(content)
+        dialogo_informacion.open()
+
+        # Extraemos las credenciales antes de abandonar el hilo principal
+        headers_seguros = self.get_headers(requiere_auth=True)
+
+        if 'Content-Type' in headers_seguros:
+            del headers_seguros['Content-Type']
+
+        # Delegación estricta al hilo secundario
+        threading.Thread(
+            target=self._hilo_secundario_subida, 
+            args=(ruta_archivo, nombre_archivo, headers_seguros, dialogo_informacion)
+        ).start()
+
+    def _hilo_secundario_subida(self, ruta_archivo, nombre_archivo, headers, dialogo):
+        # --- BLOQUE 2: HILO SECUNDARIO (Subida Fragmentada / Chunked Upload) ---
+        import requests
+        import mimetypes
+
+        url = f"{BASE_URL}/storage/buckets/{BUCKET_ID}/files"
+        
+        # El límite estricto de Appwrite Cloud es de 5MB por transacción
+        CHUNK_SIZE = 5 * 1024 * 1024  
+        tamaño_total = os.path.getsize(ruta_archivo)
+
+        tipo_mime, _ = mimetypes.guess_type(ruta_archivo)
+        if tipo_mime is None:
+            tipo_mime = 'application/octet-stream'
+
+        try:
+            file_id = 'unique()'
+            bytes_enviados = 0
+
+            # Abrimos el archivo una sola vez y leemos progresivamente sin saturar la RAM
+            with open(ruta_archivo, 'rb') as f:
+                while bytes_enviados < tamaño_total:
+                    
+                    # Extraer un bloque de máximo 5MB
+                    chunk = f.read(CHUNK_SIZE)
+                    if not chunk:
+                        break  # Prevención de bucles infinitos
+
+                    rango_fin = bytes_enviados + len(chunk) - 1
+
+                    # Estructura obligatoria de Appwrite para ensamblar fragmentos
+                    headers_chunk = headers.copy()
+                    headers_chunk['Content-Range'] = f"bytes {bytes_enviados}-{rango_fin}/{tamaño_total}"
+
+                    paquete_archivo = {'file': (nombre_archivo, chunk, tipo_mime)}
+                    paquete_datos = {'fileId': file_id}
+
+                    respuesta = requests.post(url, headers=headers_chunk, data=paquete_datos, files=paquete_archivo)
+
+                    # El servidor devuelve HTTP 201 (Created) o HTTP 200 (OK) en fragmentos intermedios
+                    if respuesta.status_code not in (200, 201):
+                        error_msg = f"HTTP {respuesta.status_code}: {respuesta.text}"
+                        Clock.schedule_once(lambda dt: self._subida_fallida(error_msg, dialogo), 0)
+                        return
+
+                    datos_json = respuesta.json()
+
+                    if file_id == 'unique()':
+                        file_id = datos_json.get('$id')
+
+                    bytes_enviados += len(chunk)
+
+            # Si el bucle finaliza, el archivo se ensambló al 100% en la nube
+            Clock.schedule_once(lambda dt: self._subida_exitosa(datos_json, nombre_archivo, dialogo), 0)
+
+        except Exception as e:
+            Clock.schedule_once(lambda dt: self._subida_fallida(str(e), dialogo), 0)
+
+    def _subida_exitosa(self, resultado, nombre_archivo, dialogo):
+        # --- BLOQUE 3A: RETORNO AL HILO PRINCIPAL (Éxito) ---
+        dialogo.dismiss()
+        file_id = resultado.get('$id')
+        Logger.info(f"Archivo físico subido al Bucket. ID asignado: {file_id}")
+        
+        # Enlazamos con el segundo paso: creación del registro en base de datos
+        self.crear_registro_bd(file_id, nombre_archivo)
+
+    def _subida_fallida(self, error_texto, dialogo):
+        # --- BLOQUE 3B: RETORNO AL HILO PRINCIPAL (Fallo) ---
+        dialogo.dismiss()
+        print(f"Error crítico en la transmisión: {error_texto}")
+        
+        MDSnackbar(
+            MDSnackbarText(text='Error al subir el archivo físico.', halign="left"),
+            duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8
+        ).open()
+
+    def crear_registro_bd(self, file_id, nombre_archivo):
+        Logger.info("CREANDO REGISTRO EN BASE DE DATOS ---")
+        url = f"{BASE_URL}/databases/{DATABASE_ID}/collections/{COLLECTION_ID}/documents"
+        url_descarga = f"{BASE_URL}/storage/buckets/{BUCKET_ID}/files/{file_id}/view?project={PROJECT_ID}"
+        pu = self.pantalla_upload
+        body = json.dumps({
+            "documentId": "unique()",
+            "data": {
+                "nombre_documento": nombre_archivo,
+                "cod_materia": pu.codigo_materia,
+                "tipo": pu.tipo,
+                "url_archivo": url_descarga,
+                "reportes": 0,
+                "categoria": pu.categoria,
+                "nombre_autor": pu.ids.campo_autor_profesor.text,
+                "oculto": False,
+                "peso_documento": pu.peso_documento,
+                "id_autor": STORE.get('auth')['user_id'],
+                "unidad": pu.unidad
+            }
+        })
+        
+        def exito(req, result):
+            MDSnackbar(MDSnackbarText(text='¡Archivo subido al repositorio! Gracias por tu aporte.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+        def fallo(req, result):
+            MDSnackbar(MDSnackbarText(text='Error al crear registro de archivo.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+        def error(req, result):
+            MDSnackbar(MDSnackbarText(text='Error al crear registro de archivo.', halign="left"),
+                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            
+        UrlRequest(url, req_body=body, req_headers=self.get_headers(requiere_auth=True), on_success=exito, on_failure=fallo, on_error=error)
+
+    def dialogo_reglamento(self):
+        dialogo_informacion = MDDialog(
+                MDDialogIcon(
+                    icon="exclamation-thick",
+                    theme_icon_color="Custom",
+                    icon_color="red",
+                ),
+                MDDialogHeadlineText(text="[b]Reglamento[/b]"),
+                MDDialogSupportingText(
+                    text=f"[b]Antes de subir un archivo, ten en cuenta lo siguiente:[/b]\n\n- Los archivos deben estar correctamente identificados (materia, tema, unidad, autor, etc).\n- El archivo debe tener un formato válido (pdf, word, excel, imagen o epub).\n- No debes subir archivos con información personal sin autorización del dueño (nombres, cédulas, expedientes, etc).\n- No subir archivos duplicados o que no aporte valor al repositorio (revisa los archivos disponibles antes de subir uno nuevo). \n\n[b]El incumplimiento del reglamento implica la eliminación permanente de la cuenta.[/b]",
+                    markup=True,
+                    halign="left",
+                ),
+                size_hint_x=0.95,
+                size_hint_y=None,
+                radius=dp(10),
+                ripple_duration_in_fast=0,
+                ripple_duration_in_slow=0,
+                theme_focus_color="Custom",
+                focus_color=[1, 1, 1, 0],
+                padding="0dp",
+                state_press=0,
+                auto_dismiss=True,
+                )
+        boton = MDDialogButtonContainer(
+                    Widget(),
+                    MDButton(
+                        MDButtonText(
+                            text="[b]Cerrar[/b]",
+                            theme_text_color="Custom",
+                            text_color=self.CYAN,
+                            markup=True,
+                        ),
+                        on_release=lambda instance, x=dialogo_informacion: self.cerrar_dialogo(x),
+                        style="text",
+                    ),
+                    )
+
+        dialogo_informacion.add_widget(boton)
+        dialogo_informacion.open()
+
+
 class MainApp(MDApp):
     widget_principal = None
     global VERSION
     version = VERSION
     size_status = ObjectProperty(0)
     size_nav = ObjectProperty(0)
+    copia_seleccionada = True
     copia_cargada = False
 
     def on_start(self):
@@ -4814,7 +5838,7 @@ class MainApp(MDApp):
         if platform == "android":
             # Android Shared Storage
             self.chooser = Chooser(self.chooser_callback)
-            temp = SharedStorage().get_cache_dir()
+            temp = self.ss.get_cache_dir()
             if temp and exists(temp):
                 shutil.rmtree(temp)
             # Kivy ads
@@ -4867,6 +5891,8 @@ class MainApp(MDApp):
             webbrowser.open("https://github.com/SaloBarreraDev/unexum")
         elif ref=="politica":
             webbrowser.open("https://docs.google.com/document/d/16mJz5LKKK6wMVRmdDqBrLc7rNaD5qulJDlUclffxa5k/edit?usp=sharing")
+        elif ref=="crearcuenta":
+            webbrowser.open("https://salobarreradev.github.io/registro-unexum")
 
     def dialogo_crear_copia(self, *args):
         dialogo_advertencia = MDDialog(
@@ -5037,20 +6063,21 @@ class MainApp(MDApp):
     def seleccionar_archivo(self, dialogo, *args):
         dialogo.dismiss()
         if platform == "android":
+            self.copia_seleccionada = True
             self.chooser.choose_content("application/zip")
         else:
             self.choose_file = f"{RUTA_ARCHIVOS}/Copias de seguridad/Backup Unexum 18-01-2026 17-27-50.zip"
             self.cargar_copia()
 
-    def cargar_copia(self, *args):
+    def cargar_copia(self, choose_file, *args):
         carpeta_temporal_extraccion = join(RUTA_ARCHIVOS, "extraidos")
         carpeta_seguridad = join(RUTA_ARCHIVOS, "temp_seguridad")
         os.makedirs(carpeta_temporal_extraccion, exist_ok=True)
         os.makedirs(carpeta_seguridad, exist_ok=True)
 
         # Extraer los archivos en la carpeta de extraccion y verificar
-        if self.choose_file.endswith(".zip"):
-            shutil.unpack_archive(self.choose_file, carpeta_temporal_extraccion)
+        if choose_file.endswith(".zip"):
+            shutil.unpack_archive(choose_file, carpeta_temporal_extraccion)
 
             nombres_archivos = os.listdir(carpeta_temporal_extraccion)
             valido = True
@@ -5157,14 +6184,15 @@ class MainApp(MDApp):
         dialogo_informacion.open()
 
     def chooser_callback(self, choose_files):
-        self.choose_file = None
         try:
-            ss = SharedStorage()
             for choose in choose_files:
-                path = ss.copy_from_shared(choose)
+                path = self.ss.copy_from_shared(choose)
                 if path:
-                    self.choose_file = path
-                    self.cargar_copia()
+                    if self.copia_seleccionada:
+                        self.cargar_copia(path)
+                    else: #Documento a subir al repositorio
+                        self.widget_principal.archivo_seleccionado(path)
+
         except Exception as e:
             Logger.error(f"Error al elegir archivo desde chooser")
 
