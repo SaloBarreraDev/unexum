@@ -64,7 +64,7 @@ from kivy.storage.jsonstore import JsonStore
 
 #Importaciones de modulos
 from src.utils import (get_height_of_bar, set_status_bar_color, get_android_api,
-    set_status_bar_icons_dark, set_navigation_bar_black, VERSION,
+    set_status_bar_icons_dark, set_navigation_bar_black, BarChart, VERSION,
     URL_BASE_DATOS_HORARIO, URL_VERSION_HORARIO, interpolar_nota, MAX_ELECTIVAS)
 from src.utils.secrets import REWARDED, INTERSTITIAL, PROJECT_ID, BASE_URL, DATABASE_ID, COLLECTION_ID, BUCKET_ID
 from src.views.screens import (Acerca, DescargoResponsabilidad, Colaboradores,
@@ -97,11 +97,6 @@ elif platform == "win":
 
 RUTA_DATOS = join(RUTA_ARCHIVOS, "datos_usuario")
 os.makedirs(RUTA_DATOS, exist_ok = True)
-matplotlib_cache_dir = join(RUTA_DATOS, "matplotlib_cache")
-os.makedirs(matplotlib_cache_dir, exist_ok=True)
-os.environ["MPLCONFIGDIR"] = matplotlib_cache_dir
-import matplotlib.pyplot as plt
-import kivy_matplotlib_widget
 
 #Obtener ruta de la carpepta Assets
 # 1. Obtiene la ruta donde está este archivo (src/main.py)
@@ -2315,45 +2310,41 @@ class Widget_Principal(ScreenManager):
         self.transition = SlideTransition(direction="up")
 
     def grafico(self, tipo):
-        from kivy.metrics import Metrics
 
         pantalla_estadisticas = self.get_screen("Estadisticas")
-        fig, ax = plt.subplots()
+        pantalla_estadisticas.ids.grafico.clear_widgets()
+        data = {}
+        colors = []
+        rotation = "no-rotation"
+        titulo = ""
         lista_materias = self.get_materias()
         if tipo == "Materia":
-            nombres = []
-            notas = []
             codigos = []
+            rotation = "down"
+            titulo = "Notas por Materia"
             for materia in lista_materias:
                 if materia.nota != "''" and materia.nota != "":
-                    nombres.append(materia.nombre)
-                    notas.append(materia.nota)
+                    data[materia.nombre] = (int(materia.nota) if materia.nota.is_integer() else materia.nota)
                     codigos.append(materia.codigo[:2])
 
             color_map = {
-                "II": "OrangeRed",
-                "IE": "green",
-                "EL": "blue",
-                "IM": "gray",
-                "IQ": "purple",
-                "MT": "orange",
+                "II": "#F54927",
+                "IE": "#2AA63E",
+                "EL": "#2B7FFF",
+                "IM": "#4A5565",
+                "IQ": "#7F22FE",
+                "MT": "#FB2C36",
                 "EB": tuple(self.NARANJA_CLARO),
                 "BDE": tuple(self.NARANJA_CLARO),
                 "Se": tuple(self.NARANJA_CLARO),
             }
-            colores_marcadores = [color_map[cod] for cod in codigos]
-            datosx = nombres
-            datosy = notas
-            limitex = 20
-            titulo = "Notas por Materia"
-            labely = "Notas"
-            labelx = "Materias"
-            rotacion = 90
-
+            colors = [color_map[cod] for cod in codigos]
+        
         elif tipo == "Semestre":
             semestres = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
             semestres_validos = []
             indices = []
+            titulo = "Índice por semestre"
             for semestre in semestres:
                 acumulador = 0
                 denominador = 0
@@ -2365,21 +2356,11 @@ class Widget_Principal(ScreenManager):
                                 denominador += materia.uc
                 if denominador:
                     indice = round(acumulador / denominador, 2)
-                    indices.append(indice)
-                    semestres_validos.append(semestre)
-
-            datosx = semestres_validos
-            datosy = indices
-            limitex = 10
-            titulo = "Índice por Semestre"
-            labely = "Índice"
-            labelx = "Semestre"
-            rotacion = 0
+                    data[semestre] = indice
 
         elif tipo == "Progresion":
             semestres = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"]
-            semestres_validos = []
-            indices = []
+            titulo = "Progresión del Índice"
             for semestre in semestres:
                 acumulador = 0
                 denominador = 0
@@ -2396,104 +2377,29 @@ class Widget_Principal(ScreenManager):
 
                 if denominador and valido:
                     indice = round(acumulador / denominador, 2)
-                    indices.append(indice)
-                    semestres_validos.append(semestre)
+                    data[semestre] = indice
 
-            datosx = semestres_validos
-            datosy = indices
-            limitex = 10
-            titulo = "Progresión de Índice"
-            labely = "Índice"
-            labelx = "Semestre"
-            rotacion = 0
-
-        factor = Metrics.density
-        ax.plot(
-            datosx,
-            datosy,
-            marker="o",
-            markersize=round(3 * factor),
-            color=tuple(self.NARANJA_CLARO),
-            zorder=4,
-            linewidth=2 * factor,
+        font_size = (12 if len(data)<=30 else 8)
+        chart = BarChart(
+            data=data, 
+            title=titulo,
+            bar_default_color = tuple(self.NARANJA_CLARO),
+            colors=colors,
+            bar_radius = 5,
+            x_axis_label_rotation = rotation,
+            grid=True,
+            grid_style='line',
+            axis_label_font_size = font_size,
+            value_font_size = font_size,
+            y_axis_labels=True,
+            size_hint=(1, 1),
+            value_color = ("#000000" if self.tema == "Claro" else "FFFFFF"),
+            axis_label_color = ("#000000" if self.tema == "Claro" else "FFFFFF"),
+            title_color = ("#000000" if self.tema == "Claro" else "FFFFFF"),
+            no_data_text = "No hay datos."
         )
-        fig.set_facecolor(tuple(self.color_fondo_claro))
-        ax.set_facecolor(tuple(self.color_fondo_claro))
-        ax.set_ylim(1, 10)
-        ax.set_xlim(-1, limitex)
-        ax.set_title(titulo, {"color": self.LETRA_FUERTE, "fontsize": 16 * factor})
-        ax.set_ylabel(
-            labely, {"color": self.LETRA_FUERTE, "fontsize": 14 * factor}, labelpad=0.45
-        )
-        ax.set_xlabel(labelx, {"color": self.LETRA_FUERTE, "fontsize": 14 * factor})
-        for lado in ["left", "right", "top", "bottom"]:
-            ax.spines[lado].set_color(self.LETRA_FUERTE)
-        ax.set_yticks(range(1, 11, 1))
-        ax.set_yticks(
-            [1.5, 2.5, 3.5, 4.5, 5.5, 6.5, 7.5, 8.5, 9.5],
-            ["1.5", "2.5", "3.5", "4.5", "5.5", "6.5", "7.5", "8.5", "9.5"],
-            minor=True,
-        )
-        ax.tick_params(
-            axis="x",
-            which="major",
-            labelrotation=rotacion,
-            labelsize=7 * factor,
-            labelcolor=self.LETRA_FUERTE,
-            color=self.LETRA_FUERTE,
-        )
-        ax.tick_params(
-            axis="y",
-            which="major",
-            labelsize=7 * factor,
-            pad=2,
-            grid_linestyle="-",
-            labelcolor=self.LETRA_FUERTE,
-            color=self.LETRA_FUERTE,
-        )
-        ax.tick_params(
-            axis="y",
-            which="minor",
-            labelsize=5.5 * factor,
-            pad=2,
-            grid_linestyle="-",
-            labelcolor=self.LETRA_FUERTE,
-            color=self.LETRA_FUERTE,
-        )
-        ax.grid(True, which="major", axis="y", alpha=0.5, color="gray", zorder=0)
-        ax.grid(True, which="minor", axis="y", alpha=0.25, color="gray", zorder=1)
-        ax.grid(True, which="major", axis="x", alpha=0.5, color="gray", zorder=2)
-        plt.subplots_adjust(bottom=0.4)
-        if tipo != "Materia":
-            for i, valor_y in enumerate(datosy):
-                ax.text(
-                    i,
-                    valor_y + 0.3,
-                    str(valor_y),
-                    {"color": self.LETRA_FUERTE},
-                    ha="center",
-                    va="bottom",
-                    fontsize=6 * factor,
-                )
-        else:
-            ax.axhline(
-                float(
-                    (
-                        self.indice_academico
-                        if self.indice_academico != "¡Sin notas!"
-                        else 0
-                    )
-                ),
-                color=tuple(self.AZUL_MAS_CLARO),
-                linestyle="--",
-                zorder=3,
-                linewidth=2 * factor,
-            )
-            ax.scatter(
-                datosx, datosy, c=colores_marcadores, s=round(25 * factor), zorder=5
-            )
-
-        pantalla_estadisticas.figure_wgt.figure = fig
+        
+        pantalla_estadisticas.ids.grafico.add_widget(chart)
 
     def mostrar_guia_grafico(self, *args):
         dialogo_informacion = MDDialog(

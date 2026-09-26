@@ -3,3 +3,4 @@ from .android_bars import (get_android_api,get_height_of_bar, set_status_bar_col
 from .constants import (VERSION, URL_BASE_DATOS_HORARIO, URL_VERSION_HORARIO,
  MAX_ELECTIVAS)
 from .calculations import interpolar_nota
+from .bar_chart import BarChart

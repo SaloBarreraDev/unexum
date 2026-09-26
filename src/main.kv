@@ -1597,7 +1597,6 @@
 
 <Estadisticas>:
     name: "Estadisticas"
-    figure_wgt: figure_wgt
     MDBoxLayout:
         id: FondoEstadisticas
         orientation: 'vertical'
@@ -1695,12 +1694,9 @@
                                 text_color: ("white" if root.tema == "Oscuro" else "black")
         
         BoxLayout:
+            id: grafico
             size_hint: 1, 0.85
-            orientation: "vertical"
-            padding: dp(5)
-            radius: dp(5)
-            MatplotFigure:
-                id: figure_wgt
+            orientation: "vertical"  
 
 <Repositorio>:
     name: "Repositorio"
