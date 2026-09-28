@@ -1794,16 +1794,19 @@
                 theme_bg_color: "Custom"
                 md_bg_color: app.root.NARANJA_CLARO
                 focus_color: [1,1,1,0]
-                MDLabel:
-                    markup: True
-                    text: f"  Materia: [b]{root.materia}[/b]"
-                    text_size: self.size
-                    shorten: True
-                    shorten_from: "right"
-                    halign: "left"
-                    theme_font_size: "Custom"
-                    font_size: "17sp"
-                    pos_hint: {"center_x": 0.5, "center_y":0.5}
+                MDRelativeLayout:
+                    size_hint: 1,1
+                    MDLabel:
+                        markup: True
+                        text: f"  Materia: [b]{root.materia}[/b]"
+                        text_size: self.size
+                        shorten: True
+                        shorten_from: "right"
+                        halign: "left"
+                        valign: "center"
+                        theme_font_size: "Custom"
+                        font_size: "17sp"
+                        pos_hint: {"center_x": 0.5, "center_y":0.5}
 
         MDDivider:
 
@@ -1828,7 +1831,7 @@
                         Image: 
                             source: "exam.png"
                             pos_hint: {"center_x": 0.5,"center_y":0.5}
-                            size_hint: 0.7, 0.7
+                            size_hint: 0.5, 0.5
                         MDLabel:
                             text: "Parciales y prácticas"
                             bold: True
@@ -1858,7 +1861,7 @@
                         Image: 
                             source: "pila-libros.png"
                             pos_hint: {"center_x": 0.5,"center_y":0.5}
-                            size_hint: 0.7, 0.7
+                            size_hint: 0.5, 0.5
                         MDLabel:
                             text: "Libros y documentos"
                             theme_line_height: "Custom"
@@ -1888,7 +1891,7 @@
                         Image: 
                             source: "notebook.png"
                             pos_hint: {"center_x": 0.5,"center_y":0.5}
-                            size_hint: 0.7, 0.7
+                            size_hint: 0.5, 0.5
                         MDLabel:
                             text: "Apuntes y notas"
                             theme_line_height: "Custom"
@@ -1918,7 +1921,7 @@
                         Image: 
                             source: "theory.png"
                             pos_hint: {"center_x": 0.5,"center_y":0.5}
-                            size_hint: 0.7, 0.7
+                            size_hint: 0.5, 0.5
                         MDLabel:
                             text: "Guías Teóricas"
                             theme_line_height: "Custom"
@@ -1948,7 +1951,7 @@
                         Image: 
                             source: "practice.png"
                             pos_hint: {"center_x": 0.5,"center_y":0.5}
-                            size_hint: 0.7, 0.7
+                            size_hint: 0.5, 0.5
                         MDLabel:
                             text: "Guías de ejercicios"
                             theme_line_height: "Custom"
@@ -1978,7 +1981,7 @@
                         Image: 
                             source: "others.png"
                             pos_hint: {"center_x": 0.5,"center_y":0.5}
-                            size_hint: 0.5, 0.5
+                            size_hint: 0.3, 0.3
                         MDLabel:
                             text: "Otros"
                             theme_line_height: "Custom"
@@ -2128,59 +2131,94 @@
                     font_size: "18sp"
 
 
-            MDBoxLayout:
-                size_hint: 1, 0.5
-                orientation: "horizontal"
-                padding: [dp(5), 0]
-                MDButton:
-                    style: "text"
-                    pos_hint: {"center_y": 0.5}
-                    on_release: app.root.mostrar_documentos_listado("I")
-                    MDButtonText:
-                        text: "I"
-                        theme_text_color: "Custom"
-                        text_color: ("white" if app.root.tema == "Oscuro" else "black")
-                MDButton:
-                    style: "text"
-                    pos_hint: {"center_y": 0.5}
-                    on_release: app.root.mostrar_documentos_listado("II")
-                    MDButtonText:
-                        text: "II"
-                        theme_text_color: "Custom"
-                        text_color: ("white" if app.root.tema == "Oscuro" else "black")
-                MDButton:
-                    style: "text"
-                    pos_hint: {"center_y": 0.5}
-                    on_release: app.root.mostrar_documentos_listado("III")
-                    MDButtonText:
-                        text: "III"
-                        theme_text_color: "Custom"
-                        text_color: ("white" if app.root.tema == "Oscuro" else "black")
-                MDButton:
-                    style: "text"
-                    pos_hint: {"center_y": 0.5}
-                    on_release: app.root.mostrar_documentos_listado("IV")
-                    MDButtonText:
-                        text: "IV"
-                        theme_text_color: "Custom"
-                        text_color: ("white" if app.root.tema == "Oscuro" else "black")
-
-                MDButton:
-                    style: "text"
-                    pos_hint: {"center_y": 0.5}
-                    on_release: app.root.mostrar_documentos_listado("V")
-                    MDButtonText:
-                        text: "V"
-                        theme_text_color: "Custom"
-                        text_color: ("white" if app.root.tema == "Oscuro" else "black")
-                MDButton:
-                    style: "text"
-                    pos_hint: {"center_y": 0.5}
-                    on_release: app.root.mostrar_documentos_listado("VI")
-                    MDButtonText:
-                        text: "VI"
-                        theme_text_color: "Custom"
-                        text_color: ("white" if app.root.tema == "Oscuro" else "black")
+            MDScrollView:
+                scroll_type: ["content"]
+                do_scroll_y: False
+                bar_width: 0
+                MDBoxLayout:
+                    adaptive_width: True
+                    orientation: "horizontal"
+                    padding: [dp(5), 0, dp(5), 0]
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: app.root.mostrar_documentos_listado("I")
+                        MDButtonText:
+                            text: "I"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: app.root.mostrar_documentos_listado("II")
+                        MDButtonText:
+                            text: "II"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: app.root.mostrar_documentos_listado("III")
+                        MDButtonText:
+                            text: "III"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: app.root.mostrar_documentos_listado("IV")
+                        MDButtonText:
+                            text: "IV"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: app.root.mostrar_documentos_listado("V")
+                        MDButtonText:
+                            text: "V"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: app.root.mostrar_documentos_listado("VI")
+                        MDButtonText:
+                            text: "VI"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: app.root.mostrar_documentos_listado("VII")
+                        MDButtonText:
+                            text: "VII"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: app.root.mostrar_documentos_listado("VIII")
+                        MDButtonText:
+                            text: "VIII"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: app.root.mostrar_documentos_listado("IX")
+                        MDButtonText:
+                            text: "IX"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                    MDButton:
+                        style: "text"
+                        pos_hint: {"center_y": 0.5}
+                        on_release: app.root.mostrar_documentos_listado("X")
+                        MDButtonText:
+                            text: "X"
+                            theme_text_color: "Custom"
+                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
 
         MDDivider:
 
@@ -2244,6 +2282,14 @@
                 md_bg_color: app.root.color_fondo_claro
                 radius: 0
                 on_release: app.root.actualizar_menu_manterias(self, False, False)
+                padding: [dp(5), 0, 0, 0]
+                orientation: "horizontal"
+
+                MDIcon:
+                    icon: "numeric-1-circle"
+                    pos_hint: {"center_y": .5}
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.NARANJA_CLARO
 
                 MDLabel:
                     markup: True
@@ -2260,31 +2306,51 @@
                 md_bg_color: app.root.color_fondo_claro
                 radius: 0
                 on_release: app.root.seleccionar_archivo()
-                orientation: "vertical"
+                padding: [dp(5), 0, 0, 0]
+                orientation: "horizontal"
 
-                MDLabel:
-                    markup: True
-                    text: f"    [b]Seleccionar Archivo:[/b]"
-                    halign: "left"
-                    size_hint: 1, 0.5
-                    theme_font_size: "Custom"
-                    font_size: "17sp"
-                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                MDIcon:
+                    icon: "numeric-2-circle"
+                    pos_hint: {"center_y": .5}
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.NARANJA_CLARO
 
-                MDLabel:
-                    text: f"    {root.nombre_archivo}"
-                    halign: "left"
-                    size_hint: 1, 0.5
-                    shorten: True
-                    theme_font_size: "Custom"
-                    font_size: "17sp"
-                    pos_hint: {"center_x": 0.5, "center_y": 0.5}
+                BoxLayout:
+                    size_hint: 1, 1
+                    orientation: "vertical"
+
+                    MDLabel:
+                        markup: True
+                        text: f"    [b]Seleccionar Archivo:[/b]"
+                        halign: "left"
+                        size_hint: 1, 0.5
+                        theme_font_size: "Custom"
+                        font_size: "17sp"
+                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
+
+                    MDLabel:
+                        text: f"    {root.nombre_archivo}"
+                        halign: "left"
+                        size_hint: 1, 0.5
+                        shorten: True
+                        theme_font_size: "Custom"
+                        font_size: "17sp"
+                        pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
             MDCard:
                 size_hint: 1, 0.1
                 theme_bg_color: "Custom"
                 md_bg_color: app.root.color_fondo_claro
                 radius: 0
+                padding: [dp(5), 0, 0, 0]
+                orientation: "horizontal"
+
+                MDIcon:
+                    icon: "numeric-3-circle"
+                    pos_hint: {"center_y": .5}
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.NARANJA_CLARO
+
                 MDTextField:
                     id: campo_tema
                     mode: "filled"
@@ -2308,12 +2374,23 @@
                         text: "[b]Tema (EJ: Integrales impropias)[/b]"
                         text_color_normal: ("black" if app.root.tema == "Claro" else "white")
                         text_color_focus: ("black" if app.root.tema == "Claro" else "white")
+                    MDTextFieldMaxLengthText:
+                        max_text_length: 30
 
             MDCard:
                 size_hint: 1, 0.1
                 theme_bg_color: "Custom"
                 md_bg_color: app.root.color_fondo_claro
                 radius: 0
+                padding: [dp(5), 0, 0, 0]
+                orientation: "horizontal"
+
+                MDIcon:
+                    icon: "numeric-4-circle"
+                    pos_hint: {"center_y": .5}
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.NARANJA_CLARO
+
                 MDTextField:
                     id: campo_autor_profesor
                     mode: "filled"
@@ -2338,78 +2415,125 @@
                         text: "[b]Autor / Profesor[/b]"
                         text_color_normal: ("black" if app.root.tema == "Claro" else "white")
                         text_color_focus: ("black" if app.root.tema == "Claro" else "white")
+                    MDTextFieldMaxLengthText:
+                        max_text_length: 30
 
             MDCard:
                 size_hint: 1, 0.12
                 theme_bg_color: "Custom"
                 md_bg_color: app.root.color_fondo_claro
                 radius: 0
-                orientation: "vertical"
                 on_release: root.seleccionar_unidad("Todas")
-                MDRelativeLayout:
-                    size_hint: 1, 0.5
-                    MDLabel:
-                        halign: "left"
-                        valign: "middle"
-                        markup: True
-                        text: f"    [b]Unidad: {root.unidad}[/b]"
-                        theme_font_size: "Custom"
-                        font_size: "18sp"
-                MDBoxLayout:
-                    size_hint: 1, 0.5
-                    orientation: "horizontal"
-                    padding: [dp(5), 0]
-                    MDButton:
-                        style: "text"
-                        pos_hint: {"center_y": 0.5}
-                        on_release: root.seleccionar_unidad("I")
-                        MDButtonText:
-                            text: "I"
-                            theme_text_color: "Custom"
-                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
-                    MDButton:
-                        style: "text"
-                        pos_hint: {"center_y": 0.5}
-                        on_release: root.seleccionar_unidad("II")
-                        MDButtonText:
-                            text: "II"
-                            theme_text_color: "Custom"
-                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
-                    MDButton:
-                        style: "text"
-                        pos_hint: {"center_y": 0.5}
-                        on_release: root.seleccionar_unidad("III")
-                        MDButtonText:
-                            text: "III"
-                            theme_text_color: "Custom"
-                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
-                    MDButton:
-                        style: "text"
-                        pos_hint: {"center_y": 0.5}
-                        on_release: root.seleccionar_unidad("IV")
-                        MDButtonText:
-                            text: "IV"
-                            theme_text_color: "Custom"
-                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                padding: [dp(5), 0, 0, 0]
+                orientation: "horizontal"
 
-                    MDButton:
-                        style: "text"
-                        pos_hint: {"center_y": 0.5}
-                        on_release: root.seleccionar_unidad("V")
-                        MDButtonText:
-                            text: "V"
-                            theme_text_color: "Custom"
-                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
-                    MDButton:
-                        style: "text"
-                        pos_hint: {"center_y": 0.5}
-                        on_release: root.seleccionar_unidad("VI")
-                        MDButtonText:
-                            text: "VI"
-                            theme_text_color: "Custom"
-                            text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                MDIcon:
+                    icon: "numeric-5-circle"
+                    pos_hint: {"center_y": .5}
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.NARANJA_CLARO
 
-            MDDivider:
+                BoxLayout:
+                    size_hint: 1,1
+                    orientation: "vertical"
+                    MDRelativeLayout:
+                        size_hint: 1, 0.5
+                        MDLabel:
+                            halign: "left"
+                            valign: "middle"
+                            markup: True
+                            text: f"    [b]Unidad: {root.unidad}[/b]"
+                            theme_font_size: "Custom"
+                            font_size: "17sp"
+                    MDScrollView:
+                        scroll_type: ["content"]
+                        do_scroll_y: False
+                        bar_width: 0
+                        MDBoxLayout:
+                            adaptive_width: True
+                            orientation: "horizontal"
+                            padding: [dp(5), 0, dp(5), 0]
+                            MDButton:
+                                style: "text"
+                                pos_hint: {"center_y": 0.5}
+                                on_release: root.seleccionar_unidad("I")
+                                MDButtonText:
+                                    text: "I"
+                                    theme_text_color: "Custom"
+                                    text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                            MDButton:
+                                style: "text"
+                                pos_hint: {"center_y": 0.5}
+                                on_release: root.seleccionar_unidad("II")
+                                MDButtonText:
+                                    text: "II"
+                                    theme_text_color: "Custom"
+                                    text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                            MDButton:
+                                style: "text"
+                                pos_hint: {"center_y": 0.5}
+                                on_release: root.seleccionar_unidad("III")
+                                MDButtonText:
+                                    text: "III"
+                                    theme_text_color: "Custom"
+                                    text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                            MDButton:
+                                style: "text"
+                                pos_hint: {"center_y": 0.5}
+                                on_release: root.seleccionar_unidad("IV")
+                                MDButtonText:
+                                    text: "IV"
+                                    theme_text_color: "Custom"
+                                    text_color: ("white" if app.root.tema == "Oscuro" else "black")
+
+                            MDButton:
+                                style: "text"
+                                pos_hint: {"center_y": 0.5}
+                                on_release: root.seleccionar_unidad("V")
+                                MDButtonText:
+                                    text: "V"
+                                    theme_text_color: "Custom"
+                                    text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                            MDButton:
+                                style: "text"
+                                pos_hint: {"center_y": 0.5}
+                                on_release: root.seleccionar_unidad("VI")
+                                MDButtonText:
+                                    text: "VI"
+                                    theme_text_color: "Custom"
+                                    text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                            MDButton:
+                                style: "text"
+                                pos_hint: {"center_y": 0.5}
+                                on_release: root.seleccionar_unidad("VII")
+                                MDButtonText:
+                                    text: "VII"
+                                    theme_text_color: "Custom"
+                                    text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                            MDButton:
+                                style: "text"
+                                pos_hint: {"center_y": 0.5}
+                                on_release: root.seleccionar_unidad("VIII")
+                                MDButtonText:
+                                    text: "VIII"
+                                    theme_text_color: "Custom"
+                                    text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                            MDButton:
+                                style: "text"
+                                pos_hint: {"center_y": 0.5}
+                                on_release: root.seleccionar_unidad("IX")
+                                MDButtonText:
+                                    text: "IX"
+                                    theme_text_color: "Custom"
+                                    text_color: ("white" if app.root.tema == "Oscuro" else "black")
+                            MDButton:
+                                style: "text"
+                                pos_hint: {"center_y": 0.5}
+                                on_release: root.seleccionar_unidad("X")
+                                MDButtonText:
+                                    text: "X"
+                                    theme_text_color: "Custom"
+                                    text_color: ("white" if app.root.tema == "Oscuro" else "black")
 
             MDCard:
                 size_hint: 1, 0.1
@@ -2417,6 +2541,14 @@
                 md_bg_color: app.root.color_fondo_claro
                 radius: 0
                 on_release: root.abrir_menu_categoria(self)
+                padding: [dp(5), 0, 0, 0]
+                orientation: "horizontal"
+
+                MDIcon:
+                    icon: "numeric-6-circle"
+                    pos_hint: {"center_y": .5}
+                    theme_icon_color: "Custom"
+                    icon_color: app.root.NARANJA_CLARO
 
                 MDLabel:
                     markup: True
@@ -2426,7 +2558,9 @@
                     theme_font_size: "Custom"
                     font_size: "17sp"
                     pos_hint: {"center_x": 0.5, "center_y": 0.5}
-                
+            
+            MDDivider:
+
             MDCard:
                 size_hint: 1, 0.1
                 theme_bg_color: "Custom"

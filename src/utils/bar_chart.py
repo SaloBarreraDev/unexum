@@ -5,6 +5,7 @@ from kivy.properties import DictProperty, ListProperty, NumericProperty, ColorPr
 from kivy.utils import get_color_from_hex
 from kivy.uix.bubble import Bubble, BubbleContent
 from kivy.clock import Clock
+from kivy.metrics import dp
 import re
 
 class BarChart(Widget):
@@ -110,8 +111,8 @@ class BarChart(Widget):
                 
                 # Ensure the label has proper dimensions
                 no_data_label.texture_update()
-                label_width = no_data_label.texture_size[0] + 20  # Add some padding
-                label_height = no_data_label.texture_size[1] + 10
+                label_width = no_data_label.texture_size[0] + dp(20)  # Add some padding
+                label_height = no_data_label.texture_size[1] + dp(10)
                 
                 # Set the final size and position
                 no_data_label.size = (label_width, label_height)
@@ -135,15 +136,15 @@ class BarChart(Widget):
         # Calculate chart dimensions
         num_bars = len(self.data)
         max_value = max(self.data.values())
-        title_height = 40 if self.title else 10
+        title_height = dp(40) if self.title else dp(10)
         
         # Increase bottom padding to provide more space for labels
         # Adjust based on rotation and screen resolution
-        bottom_padding = 160 if self.x_axis_label_rotation != "no-rotation" else 70
+        bottom_padding = dp(160) if self.x_axis_label_rotation != "no-rotation" else dp(70)
         
-        top_padding = 30
-        left_padding = 25
-        right_padding = 2
+        top_padding = dp(30)
+        left_padding = dp(25)
+        right_padding = dp(2)
 
         chart_width = self.width - left_padding - right_padding
         chart_height = self.height - title_height - bottom_padding - top_padding
@@ -219,7 +220,7 @@ class BarChart(Widget):
             
             x_axis_label.texture_update()
             x_axis_label.size = (bar_width, x_axis_label.texture_size[1])  # Set height based on content
-            x_axis_label.text_size = (180, x_axis_label.texture_size[1])
+            x_axis_label.text_size = (dp(140), x_axis_label.texture_size[1])
             
             # Position labels further away from the bars to prevent overlap
             # Use more spacing for rotated labels

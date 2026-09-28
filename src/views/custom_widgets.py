@@ -28,12 +28,11 @@ class BoxLayoutElevated(
     RectangularRippleBehavior, CommonElevationBehavior, MDRelativeLayout
 ):
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.ripple_duration_in_fast = 0.1
-        self.ripple_duration_in_slow = 0
         self.ripple_duration_out = 0.1
         self.ripple_color = [0.5, 0.5, 0.5, 0.1]
-        super().__init__(**kwargs)
-
+        
     def on_touch_down(self, touch):
         if self.collide_point(*touch.pos):
             hijo = self.children[0]
@@ -59,10 +58,11 @@ class CustomMDScrollView(MDScrollView):
                 self.effect_y.velocity = 0
 
 class BoxConRipple(RectangularRippleBehavior, MDRelativeLayout):
-    ripple_duration_in_fast = 0.1
-    ripple_duration_in_slow = 0
-    ripple_duration_out = 0.1
-    ripple_color = [0.5, 0.5, 0.5, 0.1]
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.ripple_duration_in_fast = 0.1
+        self.ripple_duration_out = 0.1
+        self.ripple_color = [0.5, 0.5, 0.5, 0.1]
 
 # Widgets de indice custom
 class BoxConRippleIndice(RecycleDataViewBehavior, RectangularRippleBehavior, RelativeLayout):
@@ -72,11 +72,13 @@ class BoxConRippleIndice(RecycleDataViewBehavior, RectangularRippleBehavior, Rel
     color_fondo = ColorProperty()
     nota = ObjectProperty()
     index = 0
-    ripple_duration_in_fast = 0.1
-    ripple_duration_in_slow = 0
-    ripple_duration_out = 0.1
-    ripple_color = [0.5, 0.5, 0.5, 0.1]
     _is_recycling = False
+
+    def __init__(self, *args, **kwargs):
+        self.ripple_duration_in_fast = 0.1
+        self.ripple_duration_out = 0.1
+        self.ripple_color = [0.5, 0.5, 0.5, 0.1]
+        super().__init__(*args, **kwargs)
 
     def on_text(self, text, focus, instance):
         app = MDApp.get_running_app()
@@ -115,32 +117,14 @@ class BoxConRippleIndice(RecycleDataViewBehavior, RectangularRippleBehavior, Rel
                         instance.text = ""
                         wp.calcular_indice()
                         wp.guardar_datos(lista_materias)
-                        MDSnackbar(
-                            MDSnackbarText(text='Nota inválida', halign="left"),
-                            MDSnackbarSupportingText(
-                                text="La nota debe estar entre 1-9 o 9-100"
-                            ),
-                            duration=5,
-                            pos_hint={"center_x": 0.5},
-                            y=dp(5),
-                            size_hint_x=0.8,
-                        ).open()
+                        wp.mostrar_snackbar("La nota debe estar entre 1-9 o 9-100", 'Nota inválida')
                 else:
                     materia.nota = ""
                     wp.ids.rv_indice.data[self.index]["nota"] = ""
                     instance.text = ""
                     wp.calcular_indice()
                     wp.guardar_datos(lista_materias)
-                    MDSnackbar(
-                            MDSnackbarText(text='Nota inválida', halign="left"),
-                            MDSnackbarSupportingText(
-                                text="La nota debe ser un número"
-                            ),
-                            duration=5,
-                            pos_hint={"center_x": 0.5},
-                            y=dp(5),
-                            size_hint_x=0.8,
-                        ).open()
+                    wp.mostrar_snackbar("La nota debe ser un número", 'Nota inválida')
 
             wp.ids.rv_indice.refresh_from_data()
 
@@ -243,14 +227,16 @@ class BoxConRipplePensum(RecycleDataViewBehavior, RectangularRippleBehavior, MDR
     active = BooleanProperty()
     index = 0
     texto_label = StringProperty("")
-    ripple_duration_in_fast = 0.1
-    ripple_duration_in_slow = 0
-    ripple_duration_out = 0.1
-    ripple_color = [0.5, 0.5, 0.5, 0.1]
     
     # Banderas de seguridad
     _is_recycling = False
-    _bloqueo_global_toques = False 
+    _bloqueo_global_toques = False
+    def __init__(self, *args, **kwargs):
+        self.ripple_duration_in_fast = 0.1
+        self.ripple_duration_out = 0.1
+        self.ripple_color = [0.5, 0.5, 0.5, 0.1]
+        super().__init__(*args, **kwargs)
+
 
     def aprobar_materia(self, value, codigo, instance):
         if self._is_recycling or BoxConRipplePensum._bloqueo_global_toques:
@@ -451,10 +437,9 @@ class RVHorario(RecycleView):
 class BoxConRippleInicio(RectangularRippleBehavior, MDBoxLayout):
     def __init__(self, *args, **kwargs):
         self.ripple_duration_in_fast = 0.1
-        self.ripple_duration_in_slow = 0
         self.ripple_duration_out = 0.1
         self.ripple_color = [0.5, 0.5, 0.5, 0.1]
-        super(BoxConRippleInicio, self).__init__(*args, **kwargs)
+        super().__init__(**kwargs)
 
 #Clases customs de horario
 class ExpansionPanelItem(FMDExpansionPanel):
@@ -511,11 +496,12 @@ class SemestrePensum(MDBoxLayout):
         return super().on_touch_down(touch)
 
 class BoxConRippleElectivas(RectangularRippleBehavior, MDRelativeLayout):
-    ripple_duration_in_fast = 0.1
-    ripple_duration_in_slow = 0
-    ripple_duration_out = 0.1
-    ripple_color = [0.5, 0.5, 0.5, 0.1]
     _is_recycling = False
+    def __init__(self, *args, **kwargs):
+        self.ripple_duration_in_fast = 0.1
+        self.ripple_duration_out = 0.1
+        self.ripple_color = [0.5, 0.5, 0.5, 0.1]
+        super().__init__(*args, **kwargs)
 
 
 #RV custom de listado de archivos

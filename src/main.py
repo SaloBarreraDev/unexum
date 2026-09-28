@@ -199,6 +199,7 @@ class Widget_Principal(ScreenManager):
     guia_pensum = True
     guia_horario = True
     guia_repositorio = True
+    reglamento = True
     # Colores tema
     tema = StringProperty()
     tema_ingles = "Dark"
@@ -321,7 +322,10 @@ class Widget_Principal(ScreenManager):
 
         menu_items_repositorio = []
         self.menu_repositorio = MDDropdownMenu(
-            caller=None, items=menu_items_repositorio, position = "bottom", max_height = dp(200)
+            caller=None,
+            items=menu_items_repositorio,
+            position = "bottom",
+            max_height = dp(200),
         )
 
         Window.bind(on_keyboard=self.back_press)
@@ -439,6 +443,43 @@ class Widget_Principal(ScreenManager):
         self.current = texto
         self.transition = SlideTransition(direction="right")
         self.menu_appbar.dismiss()
+
+    def mostrar_snackbar(self, support_text, titulo = None, duration = 5):
+        if not titulo:
+            MDSnackbar(
+                MDSnackbarSupportingText(
+                    text=support_text,
+                    theme_text_color="Custom",
+                    text_color=self.LETRA_FUERTE,
+                ),
+                duration=duration,
+                pos_hint={"center_x": 0.5},
+                y=dp(25),
+                size_hint_x=0.8,
+                theme_bg_color="Custom",
+                background_color=self.color_fondo_mas_claro,
+            ).open()
+        else:
+            MDSnackbar(
+                MDSnackbarText(
+                    text=titulo,
+                    halign="left",
+                    bold=True,
+                    theme_text_color = "Custom",
+                    text_color = self.NARANJA_CLARO,
+                ),
+                MDSnackbarSupportingText(
+                    text=support_text,
+                    theme_text_color="Custom",
+                    text_color=self.LETRA_FUERTE,
+                ),
+                duration=duration,
+                pos_hint={"center_x": 0.5},
+                y=dp(25),
+                size_hint_x=0.8,
+                theme_bg_color="Custom",
+                background_color=self.color_fondo_mas_claro,
+            ).open()
 
     @auto_save_usuario
     def actualizar_colores(self):
@@ -570,7 +611,8 @@ class Widget_Principal(ScreenManager):
                 self.guia_indice = datos_usuario["guia_indice"]
                 self.guia_pensum = datos_usuario["guia_pensum"]
                 self.guia_horario = datos_usuario["guia_horario"]
-                self.guia_repositorio = (datos_usuario["guia_repositorio"] if "guia_repositorio" in datos_usuario.keys() else True)
+                self.guia_repositorio = datos_usuario.get("guia_repositorio", True)
+                self.reglamento = datos_usuario.get("reglamento", True)
                 version_guardada = datos_usuario["version"]
                 self.tema_ingles = datos_usuario["tema"]
                 datos_cargados = True
@@ -782,7 +824,9 @@ class Widget_Principal(ScreenManager):
                 self.pantalla_repositorio = self.get_screen("Repositorio")
                 if self.sesion_activa():
                     self.buscar_datos_cuenta()
+            self.transition = SlideTransition(direction="left")
             self.current = "Repositorio"
+            self.transition = SlideTransition(direction="right")
             self.repositorio_active = True
             self.notas_active = False
             self.pensum_active = False
@@ -855,6 +899,7 @@ class Widget_Principal(ScreenManager):
                 "guia_pensum": self.guia_pensum,
                 "guia_horario": self.guia_horario,
                 "guia_repositorio": self.guia_repositorio,
+                "reglamento": self.reglamento,
                 "version": VERSION,
                 "tema": self.tema_ingles}
                 json.dump(datos_usuario, datos, indent = 4)
@@ -906,13 +951,8 @@ class Widget_Principal(ScreenManager):
                 label_text = ""
                 box_layout_inicio = None
                 # Box izquierda
-                label_text = (
-                    eval(texto_box1_eval_str, {"materia": materia_obj})
-                    if texto_box1_eval_str != "'+'"
-                    else "+"
-                )
+                label_text = (eval(texto_box1_eval_str, {"materia": materia_obj}) if texto_box1_eval_str != "'+'" else "+")
                 box_layout_inicio = BoxConRippleInicio(
-                    MDLabel(text=label_text, halign="center"),
                     ripple_effect=ripple_efectivo,
                     size_hint_y=None,
                     height=(self.height) * 0.052,
@@ -921,6 +961,7 @@ class Widget_Principal(ScreenManager):
                     md_bg_color=self.NARANJA_CLARO,
                     radius=dp(7),
                 )
+                box_layout_inicio.add_widget(MDLabel(text=label_text, halign="center"))
                 if es_inscritas:
                     box_layout_inicio.bind(
                         on_touch_down=lambda instance, touch, m=materia_obj: self.ver_evaluaciones(
@@ -930,14 +971,6 @@ class Widget_Principal(ScreenManager):
                 lista_actual_widgets.append(box_layout_inicio)
                 # Box Central
                 box_layout_inicio = BoxConRippleInicio(
-                    MDLabel(
-                        text=f"{materia_obj.nombre}",
-                        halign="center",
-                        theme_line_height="Custom",
-                        line_height=0.75,
-                        outline_width=self.borde_letra_fino,
-                        outline_color="gray",
-                    ),
                     size_hint_y=None,
                     height=(self.height) * 0.052,
                     orientation="vertical",
@@ -951,11 +984,17 @@ class Widget_Principal(ScreenManager):
                         m, es_sem, m.semestre, touch, instance
                     )
                 )
-                
+                box_layout_inicio.add_widget(MDLabel(
+                        text=f"{materia_obj.nombre}",
+                        halign="center",
+                        theme_line_height="Custom",
+                        line_height=0.75,
+                        outline_width=self.borde_letra_fino,
+                        outline_color="gray",
+                    ),)
                 lista_actual_widgets.append(box_layout_inicio)
                 # Box derecha
                 box_layout_inicio = MDBoxLayout(
-                    MDLabel(text=f"{materia_obj.uc}", halign="center"),
                     size_hint_y=None,
                     height=(self.height) * 0.052,
                     orientation="vertical",
@@ -963,6 +1002,7 @@ class Widget_Principal(ScreenManager):
                     md_bg_color=self.NARANJA_CLARO,
                     radius=dp(7),
                 )
+                box_layout_inicio.add_widget(MDLabel(text=f"{materia_obj.uc}", halign="center"))
                 lista_actual_widgets.append(box_layout_inicio)
 
             await ak.sleep(0)  # Ceder control
@@ -1228,7 +1268,7 @@ class Widget_Principal(ScreenManager):
             ),
             duration=5,
             pos_hint={"center_x": 0.5},
-            y=dp(5),
+            y=dp(25),
             size_hint_x=0.95,
             theme_bg_color="Custom",
             background_color=self.color_fondo_mas_claro,
@@ -2125,45 +2165,12 @@ class Widget_Principal(ScreenManager):
             nota_buscar = None
             if nota_pasar > sin_evaluar or sustitutiva:
                 if not sustitutiva:
-                    MDSnackbar(
-                        MDSnackbarText(
-                            text="No es posible aprobar directamente",
-                            halign="left",
-                            bold=True,
-                        ),
-                        MDSnackbarSupportingText(
-                            text=f"La nota necesaria para aprobar la materia ({nota_pasar}) no se puede obtener en las evaluaciones restantes. Intenta con Nota Sustitutiva.",
-                            theme_text_color="Custom",
-                            text_color=self.LETRA_FUERTE,
-                        ),
-                        duration=8,
-                        pos_hint={"center_x": 0.5},
-                        y=dp(5),
-                        size_hint_x=0.8,
-                        theme_bg_color="Custom",
-                        background_color=self.color_fondo_mas_claro,
-                    ).open()
+                    self.mostrar_snackbar(f"La nota necesaria para aprobar la materia ({nota_pasar}) no se puede obtener en las evaluaciones restantes. Intenta con Nota Sustitutiva.",
+                     "No es posible aprobar directamente", 8)
                     chip.active = False
                 else:
                     if nota_sustituir > sin_evaluar:
-                        MDSnackbar(
-                            MDSnackbarText(
-                                text="No es posible aprobar la materia",
-                                halign="left",
-                                bold=True,
-                            ),
-                            MDSnackbarSupportingText(
-                                text=f"La nota necesaria para sustituir ({nota_sustituir}) no se puede obtener en las evaluaciones restantes.",
-                                theme_text_color="Custom",
-                                text_color=self.LETRA_FUERTE,
-                            ),
-                            duration=8,
-                            pos_hint={"center_x": 0.5},
-                            y=dp(5),
-                            size_hint_x=0.8,
-                            theme_bg_color="Custom",
-                            background_color=self.color_fondo_mas_claro,
-                        ).open()
+                        self.mostrar_snackbar(f"La nota necesaria para sustituir ({nota_sustituir}) no se puede obtener en las evaluaciones restantes.", "No es posible aprobar la materia", 8)
                         chip.active = False
                     else:
                         nota_buscar = nota_sustituir
@@ -2235,19 +2242,7 @@ class Widget_Principal(ScreenManager):
             else:
                 if not nota_pasar or not nota_sustituir:
                     text = "sustituir" if sustitutiva else "aprobar"
-                    MDSnackbar(
-                        MDSnackbarSupportingText(
-                            text=f"Ya se alcazó la nota necesaria para {text}.",
-                            theme_text_color="Custom",
-                            text_color=self.LETRA_FUERTE,
-                        ),
-                        duration=8,
-                        pos_hint={"center_x": 0.5},
-                        y=dp(5),
-                        size_hint_x=0.8,
-                        theme_bg_color="Custom",
-                        background_color=self.color_fondo_mas_claro,
-                    ).open()
+                    self.mostrar_snackbar(f"Ya se alcazó la nota necesaria para {text}.", duration = 8)
                     chip.active = False
 
         else:
@@ -2379,13 +2374,13 @@ class Widget_Principal(ScreenManager):
                     indice = round(acumulador / denominador, 2)
                     data[semestre] = indice
 
-        font_size = (12 if len(data)<=30 else 8)
+        font_size = ("11sp" if len(data)<=30 else "8sp")
         chart = BarChart(
             data=data, 
             title=titulo,
             bar_default_color = tuple(self.NARANJA_CLARO),
             colors=colors,
-            bar_radius = 5,
+            bar_radius = dp(5),
             x_axis_label_rotation = rotation,
             grid=True,
             grid_style='line',
@@ -2396,7 +2391,9 @@ class Widget_Principal(ScreenManager):
             value_color = ("#000000" if self.tema == "Claro" else "FFFFFF"),
             axis_label_color = ("#000000" if self.tema == "Claro" else "FFFFFF"),
             title_color = ("#000000" if self.tema == "Claro" else "FFFFFF"),
-            no_data_text = "No hay datos."
+            no_data_text = "No hay datos.",
+            no_data_font_size = "14sp",
+            no_data_text_color =("#000000" if self.tema == "Claro" else "FFFFFF")
         )
         
         pantalla_estadisticas.ids.grafico.add_widget(chart)
@@ -3253,18 +3250,7 @@ class Widget_Principal(ScreenManager):
         if value:
             #Si se alcanzó el límite de electivas
             if self.contador_electivas + electiva.costo > max_electivas:
-                MDSnackbar(
-                        MDSnackbarText(
-                            text=f"Solo puedes añadir hasta {max_electivas} electivas."
-                        ),
-                        MDSnackbarSupportingText(
-                            text="Deselecciona una y vuelve a intentar. (Entrenamiento industrial opcional cuenta como 2 electivas)"
-                        ),
-                        pos_hint={"center_x": 0.5},
-                        size_hint_x=0.8,
-                        orientation="horizontal",
-                        y=dp(10),
-                    ).open()
+                self.mostrar_snackbar(f"Solo puedes añadir hasta {max_electivas} electivas.", "Deselecciona una y vuelve a intentar. (Entrenamiento industrial opcional cuenta como 2 electivas)")
                 self.inhabilitar_checkbox = True
                 checkbox.active = False
                 self.inhabilitar_checkbox = False
@@ -3545,10 +3531,7 @@ class Widget_Principal(ScreenManager):
     def iniciar_actualizacion_horario(self, *args):
         """Paso 1: Consultar archivo pequeño de versión."""
         Logger.info("Buscando actualizaciones...")
-        MDSnackbar(
-            MDSnackbarText(text='Conectando con el servidor...', halign="center"),
-            duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
-
+        self.mostrar_snackbar('Conectando con el servidor...')
         UrlRequest(
             URL_VERSION_HORARIO,
             on_success=self._verificar_version,
@@ -3566,9 +3549,7 @@ class Widget_Principal(ScreenManager):
             
             if version_remota > self.version_local_horario:
                 Logger.info(f"Actualización detectada: v{version_remota}")
-                MDSnackbar(
-                    MDSnackbarText(text='Descargando nuevos horarios...', halign="center"),
-                    duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+                self.mostrar_snackbar('Descargando nuevos horarios...')
                 # Pasamos 'result' completo porque contiene los metadatos (lapso, fecha)
                 self._descargar_base_datos(result)
             else:
@@ -3576,11 +3557,7 @@ class Widget_Principal(ScreenManager):
                 if self.base_datos_horario is None:
                      self._descargar_base_datos(result)
                 else:
-                    MDSnackbar(
-                        MDSnackbarText(text="Los datos ya están actualizados", halign="left"),
-                        MDSnackbarSupportingText(
-                            text=result.get("mensaje", "---")
-                        ),duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+                    self.mostrar_snackbar(result.get("mensaje", "---"),"Los datos ya están actualizados")
         except Exception as e:
             self._error_actualizacion(req, error=e)
 
@@ -3618,10 +3595,7 @@ class Widget_Principal(ScreenManager):
             
             # Recargar y avisar
             self.actualizar_interfaz_horario()
-            MDSnackbar(
-                MDSnackbarText(text='¡Base de datos actualizada!', halign="center"),
-                MDSnackbarSupportingText(text=meta_data_version.get("mensaje", "---")),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar(meta_data_version.get("mensaje", "---"), '¡Base de datos actualizada!')
 
             Clock.schedule_once(lambda dt,
              opcional = "\n\nActualización de horarios recibida, es importante borrar las materias y volverlas a seleccionar para aplicar los cambios.": self.advertencia_borrar_datos_horario(opcional), 5)
@@ -3636,18 +3610,10 @@ class Widget_Principal(ScreenManager):
         
         if self.base_datos_horario is None:
             # CRÍTICO: El usuario no puede usar el horario
-            MDSnackbar(
-                MDSnackbarText(text='Error de conexión', halign="left"),
-                MDSnackbarSupportingText(
-                    text="Se requiere internet para actualizar la información de horarios. Revisa tu conexión y toca la nube."
-                ),duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar("Se requiere internet para actualizar la información de horarios. Revisa tu conexión y toca la nube.",'Error de conexión')
         else:
             # LEVE: El usuario tiene datos viejos, puede seguir usándolos
-            MDSnackbar(
-                MDSnackbarText(text='No se pude actualizar', halign="left"),
-                MDSnackbarSupportingText(
-                    text="Verifica tu conexión. Se mantienen los datos actuales."
-                ), duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar("Verifica tu conexión. Se mantienen los datos actuales.", 'No se pude actualizar')
 
     @auto_save_horario
     def alternar_secciones(self, checkbox, materia, nro_seccion):
@@ -3661,14 +3627,7 @@ class Widget_Principal(ScreenManager):
         self.validar_estado_ui_horario()
 
         if not self.base_datos_horario:
-            MDSnackbar(
-                MDSnackbarText(text="¡Datos no encontrados!", halign="center"),
-                MDSnackbarSupportingText(
-                    text="Se requiere internet para descargar los horarios por primera vez.",
-                    theme_text_color="Custom", text_color=self.LETRA_FUERTE,
-                ),
-                pos_hint={"center_x": 0.5}, y=dp(10), size_hint_x=0.9
-            ).open()
+            self.mostrar_snackbar("Se requiere internet para descargar los horarios por primera vez.", "¡Datos no encontrados!")
             return
 
         async def carga_asincrona(self):
@@ -4018,40 +3977,11 @@ class Widget_Principal(ScreenManager):
             self.current = "Horario"
 
         if error_formato_horario:
-            MDSnackbar(
-                MDSnackbarText(text='Error en "Formato Horario"', halign="left"),
-                MDSnackbarSupportingText(
-                    text="Bloque de horario (DiaHora) incorrecto. Se deben ingresar los bloques (DiaHora) separados por coma."
-                ),
-                duration=8,
-                pos_hint={"center_x": 0.5},
-                y=dp(5),
-                size_hint_x=0.8,
-            ).open()
+            self.mostrar_snackbar("Bloque de horario (DiaHora) incorrecto. Se deben ingresar los bloques (DiaHora) separados por coma.", 'Error en "Formato Horario"', 8)
         elif error_formato_simbolo:
-            MDSnackbar(
-                MDSnackbarText(text='Error en "Formato Horario"', halign="left"),
-                MDSnackbarSupportingText(
-                    text="Valor incorrecto. Solo se pueden ingresar números, comas y guiones"
-                ),
-                duration=8,
-                pos_hint={"center_x": 0.5},
-                y=dp(5),
-                size_hint_x=0.8,
-            ).open()
+            self.mostrar_snackbar('Error en "Formato Horario"', "Valor incorrecto. Solo se pueden ingresar números, comas y guiones", 8)
         elif error_formato:
-            MDSnackbar(
-                MDSnackbarText(
-                    text='Error en "Seccion" y/o "Profesor"', halign="left"
-                ),
-                MDSnackbarSupportingText(
-                    text="Se debe ingresar una sección y/o profesor separado por coma para cada opción de horario de la materia"
-                ),
-                duration=8,
-                pos_hint={"center_x": 0.5},
-                y=dp(5),
-                size_hint_x=0.8,
-            ).open()
+            self.mostrar_snackbar("Se debe ingresar una sección y/o profesor separado por coma para cada opción de horario de la materia", 'Error en "Seccion" y/o "Profesor"', 8)
         else:
             if self.horario:
                 self.mostrar_horario(lista_posibles_bloques, codigos, numero_horario, lista_colores)
@@ -4069,6 +3999,7 @@ class Widget_Principal(ScreenManager):
                 MDSnackbarText(
                     text=f"Calculando {total} horarios. Esto puede tomar un rato.",
                     halign="center",
+                    theme_text_color="Custom", text_color=self.LETRA_FUERTE,
                 ),
                 duration=4,
                 pos_hint={"center_x": 0.92, "center_y": 0.5},
@@ -4078,6 +4009,8 @@ class Widget_Principal(ScreenManager):
                 focus_color=[1, 1, 1, 0],
                 ripple_color=[1, 1, 1, 0],
                 state_press=0,
+                theme_bg_color = "Custom",
+                md_bg_color = self.color_fondo_mas_claro,
                 ).open()
 
             Clock.schedule_once(lambda dt: threading.Thread(
@@ -4463,7 +4396,7 @@ class Widget_Principal(ScreenManager):
         MDSnackbar(
             MDSnackbarText(
                 text=f"Horario #{numero_horario+1} - Choques: {contador_choques}",
-                halign="center",
+                halign="center", theme_text_color="Custom", text_color=self.LETRA_FUERTE,
             ),
             duration=3,
             pos_hint={"center_x": 0.92, "center_y": 0.5},
@@ -4473,6 +4406,8 @@ class Widget_Principal(ScreenManager):
             focus_color=[1, 1, 1, 0],
             ripple_color=[1, 1, 1, 0],
             state_press=0,
+            theme_bg_color = "Custom",
+            md_bg_color = self.color_fondo_mas_claro,
         ).open()
         for button in self.pantalla_generar_horario.ids["FloatLayoutHorario"].children:
             button.disabled = False
@@ -4621,7 +4556,7 @@ class Widget_Principal(ScreenManager):
                 os.remove(archivo)
 
             MDSnackbar(
-                MDSnackbarText(text=f"¡Imagen guardada en /Pictures!", halign="center"),
+                MDSnackbarText(text=f"¡Imagen guardada en /Pictures!", halign="center", theme_text_color="Custom", text_color=self.LETRA_FUERTE),
                 duration=3,
                 pos_hint={"center_x": 0.92, "center_y": 0.5},
                 size_hint_x=0.65,
@@ -4630,11 +4565,13 @@ class Widget_Principal(ScreenManager):
                 focus_color=[1, 1, 1, 0],
                 ripple_color=[1, 1, 1, 0],
                 state_press=0,
+                theme_bg_color = "Custom",
+                md_bg_color = self.color_fondo_mas_claro,
             ).open()
         except Exception as e:
             Logger.error(f"Error al guardar imagen {e}")
             MDSnackbar(
-                MDSnackbarText(text=f"¡Error al guardar Imagen!", halign="center"),
+                MDSnackbarText(text=f"¡Error al guardar Imagen!", halign="center", theme_text_color="Custom", text_color=self.LETRA_FUERTE),
                 duration=3,
                 pos_hint={"center_x": 0.92, "center_y": 0.5},
                 size_hint_x=0.65,
@@ -4643,6 +4580,8 @@ class Widget_Principal(ScreenManager):
                 focus_color=[1, 1, 1, 0],
                 ripple_color=[1, 1, 1, 0],
                 state_press=0,
+                theme_bg_color = "Custom",
+                md_bg_color = self.color_fondo_mas_claro,
             ).open()
 
     def guardar_pdf_horario(self, *args):
@@ -4677,7 +4616,7 @@ class Widget_Principal(ScreenManager):
                 os.remove(direccion_pdf)
 
             MDSnackbar(
-                MDSnackbarText(text=f"¡PDF guardado en Documents!", halign="center"),
+                MDSnackbarText(text=f"¡PDF guardado en Documents!", halign="center", theme_text_color="Custom", text_color=self.LETRA_FUERTE),
                 duration=3,
                 pos_hint={"center_x": 0.92, "center_y": 0.5},
                 size_hint_x=0.65,
@@ -4686,12 +4625,14 @@ class Widget_Principal(ScreenManager):
                 focus_color=[1, 1, 1, 0],
                 ripple_color=[1, 1, 1, 0],
                 state_press=0,
+                theme_bg_color = "Custom",
+                md_bg_color = self.color_fondo_mas_claro,
             ).open()
 
         except Exception as e:
             Logger.error(f"Error al guardar PDF, {e}")
             MDSnackbar(
-                MDSnackbarText(text=f"¡Error al guardar el PDF!", halign="center"),
+                MDSnackbarText(text=f"¡Error al guardar el PDF!", halign="center", theme_text_color="Custom", text_color=self.LETRA_FUERTE),
                 duration=3,
                 pos_hint={"center_x": 0.92, "center_y": 0.5},
                 size_hint_x=0.65,
@@ -4700,6 +4641,8 @@ class Widget_Principal(ScreenManager):
                 focus_color=[1, 1, 1, 0],
                 ripple_color=[1, 1, 1, 0],
                 state_press=0,
+                theme_bg_color = "Custom",
+                md_bg_color = self.color_fondo_mas_claro,
             ).open()
 
     def tap_expansion_chevron(self, panel: FMDExpansionPanel, chevron: TrailingPressedIconButton):
@@ -4732,7 +4675,7 @@ class Widget_Principal(ScreenManager):
                 ),
                 MDDialogHeadlineText(text="[b]Guía de [i]Repositorio[/i][/b]"),
                 MDDialogSupportingText(
-                    text="Información de repositorio",
+                    text=" En el repositorio podrás consultar los archivos subidos por otros estudiantes, sólo debes seleccionar una materia y una categoria para revisar los archivos disponibles. [b]No necesitas iniciar sesión para ver o descargar archivos[/b].\n\n [b]Para subir archivos[/b], deberás registrarte, verificar tu correo e iniciar sesión en tu cuenta.",
                     markup=True,
                     halign="left",
                 ),
@@ -4777,20 +4720,7 @@ class Widget_Principal(ScreenManager):
                             "on_release": lambda x=materia.codigo: self.seleccionar_materia_repo(x),
                         })
             if not menu_items_repositorio:
-                MDSnackbar(
-                    MDSnackbarText(
-                        text="No hay materias inscritas",
-                        markup=True,
-                        theme_text_color="Custom",
-                        text_color=self.LETRA_FUERTE,
-                    ),
-                    duration=5,
-                    pos_hint={"center_x": 0.5},
-                    y=dp(5),
-                    size_hint_x=0.95,
-                    theme_bg_color="Custom",
-                    background_color=self.color_fondo_mas_claro,
-                ).open()
+                self.mostrar_snackbar("No hay materias inscritas.")
                 return
 
         else:
@@ -4863,14 +4793,12 @@ class Widget_Principal(ScreenManager):
             self.repositorio_cache[codigo] = documentos
             return callback(documentos)
             
-        def fallo(req, result): 
-            MDSnackbar(MDSnackbarText(text='Error al consultar materia', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+        def fallo(req, result):
+            self.mostrar_snackbar('Error al consultar materia')
 
         def error_red(req, result):
-            MDSnackbar(MDSnackbarText(text='Error de conexión.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
-            
+            self.mostrar_snackbar('Error de conexión.')
+        
         UrlRequest(url, req_headers=self.get_headers(requiere_auth=False), method='GET', on_success=exito, on_failure=fallo, on_error=error_red)
 
     def get_headers(self, requiere_auth=False):
@@ -5011,6 +4939,7 @@ class Widget_Principal(ScreenManager):
                 size_hint_x=0.95,
                 size_hint_y=None,
                 radius=dp(10),
+                spacing = dp(10),
                 ripple_duration_in_fast=0,
                 ripple_duration_in_slow=0,
                 theme_focus_color="Custom",
@@ -5032,7 +4961,7 @@ class Widget_Principal(ScreenManager):
             content = MDDialogContentContainer(campo_correo,
                                         campo_contraseña,
                                         btn_iniciar_sesion,
-                                        MDLabel(text = "\n\n¿No tienes una cuenta?\n[b][u][ref=crearcuenta]Crea una aquí[/ref][/u][/b]\n",
+                                        MDLabel(text = "\n\n¿No tienes una cuenta?\n[b][u][ref=crearcuenta]Crea una aquí[/ref][/u][/b]\n\n",
                                         halign = "center",
                                         markup = True,
                                         on_ref_press = lambda x, ref: app.abrir_enlace(ref)),
@@ -5066,12 +4995,10 @@ class Widget_Principal(ScreenManager):
     def iniciar_sesion(self, email, password, dlg):
         Logger.info("--- EJECUTANDO INICIO DE SESIÓN ---")
         if email.error:
-            MDSnackbar(MDSnackbarText(text='Correo inválido.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Correo inválido.')
             return
         elif password.text == "":
-            MDSnackbar(MDSnackbarText(text='Ingresa una contraseña.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Ingresa una contraseña.')
             return
         url = f"{BASE_URL}/account/sessions/email"
         body = json.dumps({"email": email.text, "password": password.text})
@@ -5081,26 +5008,18 @@ class Widget_Principal(ScreenManager):
             cookie_header = next((str(v) for k, v in headers.items() if k.lower() == 'set-cookie'), None)
             if cookie_header:
                 STORE.put('auth', cookie=cookie_header.split(';')[0], user_id=result.get('userId'))
-                MDSnackbar(MDSnackbarText(text='Sesión Iniciada!', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+                self.mostrar_snackbar('Sesión Iniciada!')
                 self.buscar_datos_cuenta()
                 self.cerrar_dialogo(dlg)
             else:
-                MDSnackbar(MDSnackbarText(text='Error al iniciar sesión.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
-                
+                self.mostrar_snackbar('Error al iniciar sesión.')
+
         def fallo(req, result):
             Logger.info("Fallo en Login")
             if result["code"] == 400 or result["code"] == 401:
-                MDSnackbar(
-                MDSnackbarText(text='Datos Inválidos', halign="left"),
-                MDSnackbarSupportingText(
-                    text="Email o contraseña incorrectos"
-                ), duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+                self.mostrar_snackbar("Email o contraseña incorrectos", 'Datos Inválidos')
             else:
-                MDSnackbar(MDSnackbarText(text='Error al iniciar sesión.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
-
+                self.mostrar_snackbar('Error al iniciar sesión.')
         UrlRequest(url, req_body=body, req_headers=self.get_headers(), on_success=lambda x,y, dlg=dlg: exito(x,y,dlg), on_failure=fallo)
 
     def buscar_datos_cuenta(self):
@@ -5111,11 +5030,9 @@ class Widget_Principal(ScreenManager):
             self.pantalla_repositorio.email_verification = result["emailVerification"]
             self.pantalla_repositorio.nombre_usuario = result["name"]
         def fallo(req, result): 
-            MDSnackbar(MDSnackbarText(text='Error al obtener datos de la cuenta', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Error al obtener datos de la cuenta')
         def error_red(req, result):
-            MDSnackbar(MDSnackbarText(text='Error de conexión.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Error de conexión.')
         UrlRequest(url, req_headers=self.get_headers(requiere_auth=True), on_success=exito, on_failure=fallo, on_error=error_red)
 
     def cerrar_sesion(self, dlg):
@@ -5123,18 +5040,16 @@ class Widget_Principal(ScreenManager):
         url = f"{BASE_URL}/account/sessions/current"
         def exito(req, result):
             STORE.delete('auth')
-            MDSnackbar(MDSnackbarText(text='Sesión Cerrada.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Sesión Cerrada.')
             self.pantalla_repositorio.email_verification = False
             self.pantalla_repositorio.nombre_usuario = ""
             dlg.dismiss()
+
         def fallo(req, result):
-            MDSnackbar(MDSnackbarText(text='Fallo al cerrar sesión', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Fallo al cerrar sesión')
 
         def error_red(req, result):
-            MDSnackbar(MDSnackbarText(text='Error de conexión.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Error de conexión.')
 
         UrlRequest(url, req_headers=self.get_headers(requiere_auth=True), method='DELETE', on_success=exito, on_failure=fallo, on_error=error_red)
 
@@ -5143,22 +5058,23 @@ class Widget_Principal(ScreenManager):
         if self.pantalla_repositorio.codigo_materia:
             self.seleccionar_materia_repo(self.pantalla_repositorio.codigo_materia)
 
-        MDSnackbar(MDSnackbarText(text=f'Repositorio actualizado!', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
-
+        self.mostrar_snackbar('Repositorio actualizado!')
     # -----------------------
     # PANTALLA DE LISTADO 
     # -----------------------
 
     def ir_a_listado(self, categoria, nro_archivos):
         if nro_archivos == 0:
-            MDSnackbar(MDSnackbarText(text=f'No hay archivos en {categoria}', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar(f'No hay archivos en {categoria}')
             return
+
         if not self.has_screen("Listado"):
             self.add_widget(Listado())
             self.pantalla_listado = self.get_screen("Listado")
+
+        self.transition = SlideTransition(direction="left")
         self.current = "Listado"
+        self.transition = SlideTransition(direction="right")
         self.pantalla_listado.materia = self.pantalla_repositorio.materia
         self.pantalla_listado.categoria = categoria
         self.mostrar_documentos_listado()
@@ -5204,6 +5120,7 @@ class Widget_Principal(ScreenManager):
 
     def descargar_documento(self, url, nombre_archivo, unidad, peso):
         app = MDApp.get_running_app()
+        nombre_destino = None
         try:
             temp = None
             if platform == "android":
@@ -5252,29 +5169,25 @@ class Widget_Principal(ScreenManager):
             archivo = "prueba"
             if platform == "android":
                 archivo = app.ss.copy_to_shared(nombre_destino, filepath=join("Repositorio", self.pantalla_listado.materia, unidad, nombre_archivo))
-                MDSnackbar(MDSnackbarSupportingText(text='Archivo descargado.', halign="left"),
+                MDSnackbar(MDSnackbarSupportingText(text='Archivo descargado.', halign="left", theme_text_color="Custom", text_color=self.LETRA_FUERTE),
                             MDSnackbarButtonContainer(
                                 MDSnackbarActionButton(
                                     MDSnackbarActionButtonText(text = "Abrir"), on_release = lambda a=archivo: self.open_file(archivo),
                                     ),
                                 ),
-                        duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+                        duration=5, pos_hint={"center_x": 0.5}, y=dp(25), size_hint_x=0.8, theme_bg_color = "Custom", md_bg_color = self.color_fondo_mas_claro).open()
             else:
-                MDSnackbar(MDSnackbarText(text='Archivo descargado correctamente.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
-                
+                self.mostrar_snackbar('Archivo descargado correctamente.')
             
         def fallo(req, result):
             Logger.error(f"{result}")
-            MDSnackbar(MDSnackbarText(text='Error al descargar.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Error al descargar.')
             eliminar_archivo_corrupto(nombre_destino)
             dialogo_informacion.dismiss()
             
         def error_red(req, error):
             Logger.error(f"{error}")
-            MDSnackbar(MDSnackbarText(text='Error de conexión.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Error de conexión.')
             eliminar_archivo_corrupto(nombre_destino)
             dialogo_informacion.dismiss()
 
@@ -5359,12 +5272,10 @@ class Widget_Principal(ScreenManager):
         dlg.dismiss()
         Logger.info("\n--- INICIANDO PROTOCOLO DE REPORTE ---")
         if not STORE.exists('auth'):
-            MDSnackbar(MDSnackbarText(text='Inicia sesión en una cuenta primero.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Inicia sesión en una cuenta primero.')
             return
         if not self.pantalla_repositorio.email_verification:
-            MDSnackbar(MDSnackbarText(text='Tu email debe estar verificado.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Tu email debe estar verificado.')
             return
 
         dialogo_informacion = MDDialog(
@@ -5413,22 +5324,18 @@ class Widget_Principal(ScreenManager):
             try:
                 datos_funcion = json.loads(respuesta_cruda)
                 if datos_funcion.get('exito'):
-                    MDSnackbar(MDSnackbarText(text='Reporte procesado y enviado.', halign="left"),
-                        duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+                    self.mostrar_snackbar('Reporte procesado y enviado.')
                     if datos_funcion.get('oculto'):
                         Logger.info("El sistema ha censurado automáticamente este archivo.")
                 else:
-                    MDSnackbar(MDSnackbarText(text=f'{datos_funcion.get('error')}.', halign="left"),
-                        duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+                    self.mostrar_snackbar(f'{datos_funcion.get('error')}.')
             except Exception:
-                MDSnackbar(MDSnackbarText(text='Error en el servidor.', halign="left"),
-                        duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
-                
+                self.mostrar_snackbar('Error en el servidor.')
+
         def fallo(req, result):
             dialogo_informacion.dismiss()
-            MDSnackbar(MDSnackbarText(text='Error en el servidor.', halign="left"),
-                        duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
-            
+            self.mostrar_snackbar('Error en el servidor.')
+
         UrlRequest(url, req_body=body_request, req_headers=self.get_headers(requiere_auth=True), method='POST', on_success=exito, on_failure=fallo)
 
     # -----------------------
@@ -5437,20 +5344,22 @@ class Widget_Principal(ScreenManager):
 
     def ir_a_upload(self):
         if not self.sesion_activa():
-            MDSnackbar(MDSnackbarText(text='Debes iniciar sesión en una cuenta primero.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Debes iniciar sesión en una cuenta primero.')
             return
 
         if not self.pantalla_repositorio.email_verification:
-            MDSnackbar(MDSnackbarText(text='No se ha podido verificar tu email.', halign="left"),
-            duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('No se ha podido verificar tu email.')
             return
 
         if not self.has_screen("Upload"):
             self.add_widget(Upload())
             self.pantalla_upload = self.get_screen("Upload")
-
+        self.transition = SlideTransition(direction="left")
         self.current = "Upload"
+        self.transition = SlideTransition(direction="right")
+        if self.reglamento:
+            self.dialogo_reglamento()
+            self.reglamento = False
 
     def seleccionar_materia_upload(self, codigo):
         self.menu_repositorio.dismiss()
@@ -5469,8 +5378,7 @@ class Widget_Principal(ScreenManager):
 
     def archivo_seleccionado(self, ruta):
         if not os.path.isfile(ruta):
-            MDSnackbar(MDSnackbarText(text='El archivo no existe o es inválido', halign="left"),
-            duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('El archivo no existe o es inválido')
             return
 
         nombre = os.path.splitext(os.path.basename(ruta))[0]
@@ -5491,19 +5399,19 @@ class Widget_Principal(ScreenManager):
         pu = self.pantalla_upload
         
         if not pu.codigo_materia:
-            MDSnackbar(MDSnackbarText(text='Selecciona la materia.', halign="left"), duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Selecciona la materia.')
             return
         if pu.nombre_archivo == "---":
-            MDSnackbar(MDSnackbarText(text='Selecciona el archivo a subir.', halign="left"), duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Selecciona el archivo a subir.')
             return
-        if not pu.ids.campo_tema.text:
-            MDSnackbar(MDSnackbarText(text='Escribe el tema del archivo.', halign="left"), duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+        if not pu.ids.campo_tema.text or pu.ids.campo_tema.error:
+            self.mostrar_snackbar('Escribe un tema válido.')
             return
-        if not pu.ids.campo_autor_profesor.text:
-            MDSnackbar(MDSnackbarText(text='Escribe un autor/profesor.', halign="left"), duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+        if not pu.ids.campo_autor_profesor.text or pu.ids.campo_autor_profesor.error:
+            self.mostrar_snackbar('Escribe un autor/profesor válido.')
             return
         if pu.categoria == "---":
-            MDSnackbar(MDSnackbarText(text='Selecciona una categoria.', halign="left"), duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Selecciona una categoria.')
             return
 
         ruta_archivo = pu.ruta
@@ -5620,12 +5528,7 @@ class Widget_Principal(ScreenManager):
     def _subida_fallida(self, error_texto, dialogo):
         # --- BLOQUE 3B: RETORNO AL HILO PRINCIPAL (Fallo) ---
         dialogo.dismiss()
-        print(f"Error crítico en la transmisión: {error_texto}")
-        
-        MDSnackbar(
-            MDSnackbarText(text='Error al subir el archivo físico.', halign="left"),
-            duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8
-        ).open()
+        self.mostrar_snackbar('Error al subir el archivo físico.')
 
     def crear_registro_bd(self, file_id, nombre_archivo):
         Logger.info("CREANDO REGISTRO EN BASE DE DATOS ---")
@@ -5650,14 +5553,11 @@ class Widget_Principal(ScreenManager):
         })
         
         def exito(req, result):
-            MDSnackbar(MDSnackbarText(text='¡Archivo subido al repositorio! Gracias por tu aporte.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar("Gracias por tu aporte.', '¡Archivo subido al repositorio!")
         def fallo(req, result):
-            MDSnackbar(MDSnackbarText(text='Error al crear registro de archivo.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Error al crear registro de archivo.')
         def error(req, result):
-            MDSnackbar(MDSnackbarText(text='Error al crear registro de archivo.', halign="left"),
-                duration=5, pos_hint={"center_x": 0.5}, y=dp(5), size_hint_x=0.8).open()
+            self.mostrar_snackbar('Error al crear registro de archivo.')
             
         UrlRequest(url, req_body=body, req_headers=self.get_headers(requiere_auth=True), on_success=exito, on_failure=fallo, on_error=error)
 
@@ -5698,7 +5598,6 @@ class Widget_Principal(ScreenManager):
                         style="text",
                     ),
                     )
-
         dialogo_informacion.add_widget(boton)
         dialogo_informacion.open()
 
@@ -5744,7 +5643,7 @@ class MainApp(MDApp):
         if platform == "android":
             # Android Shared Storage
             self.chooser = Chooser(self.chooser_callback)
-            temp = self.ss.get_cache_dir()
+            temp = SharedStorage().get_cache_dir()
             if temp and exists(temp):
                 shutil.rmtree(temp)
             # Kivy ads
@@ -5764,20 +5663,7 @@ class MainApp(MDApp):
 
     @mainthread
     def recompensa_obtenida(self):
-        MDSnackbar(
-            MDSnackbarText(
-                text="¡Gracias por el apoyo!",
-                markup=True,
-                theme_text_color="Custom",
-                text_color=self.widget_principal.LETRA_FUERTE,
-            ),
-            duration=5,
-            pos_hint={"center_x": 0.5},
-            y=dp(5),
-            size_hint_x=0.95,
-            theme_bg_color="Custom",
-            background_color=self.widget_principal.color_fondo_mas_claro,
-        ).open()
+        self.widget_principal.mostrar_snackbar("¡Gracias por el apoyo!")
 
     def cambiar_tema(self):
         self.theme_cls.theme_style = ("Dark" if self.theme_cls.theme_style == "Light" else "Light")
@@ -5894,24 +5780,11 @@ class MainApp(MDApp):
                 )
                 os.remove(direccion_zip)
 
-            MDSnackbar(
-                MDSnackbarText(text="Copia de seguridad creada", halign="center"),
-                duration=8,
-                pos_hint={"center_x": 0.5},
-                y=dp(5),
-                size_hint_x=0.7,
-            ).open()
+            self.widget_principal.mostrar_snackbar("Copia de seguridad creada")
 
         except Exception as e:
             Logger.error(f"Error al crear copia de seguridad {e}")
-            MDSnackbar(
-                MDSnackbarText(text="Ha ocurrido un error", halign="left"),
-                MDSnackbarSupportingText(text="No se pudo crear la copia de seguridad"),
-                duration=8,
-                pos_hint={"center_x": 0.5},
-                y=dp(5),
-                size_hint_x=0.8,
-            ).open()
+            self.widget_principal.mostrar_snackbar("No se pudo crear la copia de seguridad", "Ha ocurrido un error")
 
     def dialogo_cargar_copia(self, *args):
         dialogo_advertencia = MDDialog(
@@ -6026,23 +5899,9 @@ class MainApp(MDApp):
                             shutil.move(carpeta_seguridad, RUTA_DATOS)
 
             else:
-                MDSnackbar(
-                    MDSnackbarText(text="Ha ocurrido un error", halign="left"),
-                    MDSnackbarSupportingText(text="El archivo no es válido"),
-                    duration=8,
-                    pos_hint={"center_x": 0.5},
-                    y=dp(5),
-                    size_hint_x=0.8,
-                ).open()
+                self.widget_principal.mostrar_snackbar("El archivo no es válido", "Ha ocurrido un error")
         else:
-            MDSnackbar(
-                MDSnackbarText(text="Ha ocurrido un error", halign="left"),
-                MDSnackbarSupportingText(text="El archivo no es un .zip"),
-                duration=8,
-                pos_hint={"center_x": 0.5},
-                y=dp(5),
-                size_hint_x=0.8,
-            ).open()
+            self.widget_principal.mostrar_snackbar("El archivo no es un .zip", "Ha ocurrido un error")
 
     @mainthread
     def dialogo_carga_exitosa(self, *args):
