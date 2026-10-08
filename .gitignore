@@ -214,6 +214,7 @@ test.py
 /datos_usuario
 /Horarios
 /Copias de seguridad
+/Repositorio
 sesion_prueba.json
 icons_kv.py
 ripple_test.py
