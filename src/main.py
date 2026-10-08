@@ -65,7 +65,7 @@ from kivy.storage.jsonstore import JsonStore
 #Importaciones de modulos
 from src.utils import (get_height_of_bar, set_status_bar_color, get_android_api,
     set_status_bar_icons_dark, set_navigation_bar_black, BarChart, VERSION,
-    URL_BASE_DATOS_HORARIO, URL_VERSION_HORARIO, interpolar_nota, MAX_ELECTIVAS)
+    URL_BASE_DATOS_HORARIO, URL_VERSION_HORARIO, interpolar_nota, MAX_ELECTIVAS, URL_ANUNCIOS)
 from src.utils.secrets import REWARDED, INTERSTITIAL, PROJECT_ID, BASE_URL, DATABASE_ID, COLLECTION_ID, BUCKET_ID
 from src.views.screens import (Acerca, DescargoResponsabilidad, Colaboradores,
     Licencias, GenerarHorario, Configuracion, Login, Horario, Evaluaciones,
@@ -323,6 +323,8 @@ class Widget_Principal(ScreenManager):
         menu_items_repositorio = []
         self.menu_repositorio = MDDropdownMenu(
             caller=None,
+            border_margin=dp(24),
+            ver_growth="down",
             items=menu_items_repositorio,
             position = "bottom",
             max_height = dp(200),
@@ -645,9 +647,6 @@ class Widget_Principal(ScreenManager):
                 )
                 migracion = True
                 migrar_datos(version_guardada)
-                self.guia_inicio = True
-                self.guia_horario = True
-                Clock.schedule_once(self.mostrar_guia_inicio, 2.5)
 
             Logger.info(
                 "Cargando funciones get_materias, calcular_indice, unidades aprobadas y totales, actualizar colores, cargar_datos_indice y pensum."
@@ -658,6 +657,10 @@ class Widget_Principal(ScreenManager):
             self.actualizar_colores()
             self.cargar_datos_indice()
             self.cargar_datos_pensum()
+            Clock.schedule_once(
+                lambda dt, cambio_tema=True: self.consultar_anuncio(),
+                1.6,
+            )
             if migracion:
                 Logger.info("Se detectó migración de datos, actualizando pensum")
                 self.actualizar_pensum("")
@@ -738,18 +741,15 @@ class Widget_Principal(ScreenManager):
             self.inicio_active = True
             self.notas_active = False
             self.horario_active = False
-            Clock.schedule_once(self.mostrar_guia_inicio, 1.2)
-            Clock.schedule_once(
-                lambda dt, inscritas=True: self.mostrar_materias_inicio(
-                    inscritas=inscritas
-                ),
-                1.5,
-            )
             Clock.schedule_once(
                 lambda dt, cambio_tema=True: self.mostrar_materias_inicio(
                     cambio_tema=cambio_tema
                 ),
                 1.6,
+            )
+            Clock.schedule_once(
+                lambda dt, cambio_tema=True: self.consultar_anuncio(),
+                2,
             )
             self.remove_widget(pantalla_login)
             self.requiere_login = False
@@ -907,6 +907,74 @@ class Widget_Principal(ScreenManager):
         threading.Thread(target=thread, args=(self,)).start()        
 
     # Pantalla inicio
+    def consultar_anuncio(self):
+        def exito(req, result):
+            if isinstance(result, str):
+                result = json.loads(result)
+            activo = result.get('activo', False)
+            version_nube = result.get('version', 0)
+            app = MDApp.get_running_app()
+            version_local = app.memoria_local.get('anuncios')['ultima_version']
+
+            # Evaluación de actualización
+            if activo and version_nube > version_local:
+                app.memoria_local.put('anuncios', ultima_version=version_nube)
+                titulo = result.get('titulo', 'Aviso')
+                mensaje = result.get('mensaje', '')
+
+                dialogo_informacion = MDDialog(
+                    MDDialogIcon(
+                        icon="information",
+                        theme_icon_color="Custom",
+                        icon_color=self.AZUL_CLARO,
+                    ),
+                    MDDialogHeadlineText(text=f"[b]{titulo}[/b]", markup=True),
+                    MDDialogSupportingText(
+                        text=mensaje,
+                        theme_font_size="Custom",
+                        font_size="14sp",
+                        markup=True,
+                        halign="left",
+                        on_ref_press= (lambda x, ref: app.abrir_enlace(ref))),
+                    size_hint_x=0.95,
+                    size_hint_y=None,
+                    radius=[dp(10), dp(10), dp(10), dp(10)],
+                    ripple_duration_in_fast=0,
+                    ripple_duration_in_slow=0,
+                    theme_focus_color="Custom",
+                    focus_color=[1, 1, 1, 0],
+                    padding="0dp",
+                    state_press=0,
+                )
+                boton = MDDialogButtonContainer(
+                    Widget(),
+                    MDButton(
+                        MDButtonText(
+                            text="[b]Ok[/b]",
+                            theme_text_color="Custom",
+                            text_color=self.CYAN,
+                            markup=True,
+                        ),
+                        on_release=lambda instance, dialogo=dialogo_informacion: self.cerrar_dialogo(
+                            dialogo
+                        ),
+                        style="text",
+                    ),
+                )
+                dialogo_informacion.add_widget(boton)
+                dialogo_informacion.open()
+
+        def error(req, error):
+            # Si el estudiante no tiene internet o GitHub falla
+            pass
+
+        UrlRequest(
+            URL_ANUNCIOS, 
+            on_success=exito, 
+            on_failure=error, 
+            on_error=error
+        )
+
     def mostrar_materias_inicio(self, inscritas=False, cambio_tema=False, *args):
         async def cargar_materias_async(
             self, es_inscritas, es_cambio_tema
@@ -2378,6 +2446,7 @@ class Widget_Principal(ScreenManager):
         chart = BarChart(
             data=data, 
             title=titulo,
+            title_font_size = "22sp",
             bar_default_color = tuple(self.NARANJA_CLARO),
             colors=colors,
             bar_radius = dp(5),
@@ -2407,7 +2476,7 @@ class Widget_Principal(ScreenManager):
             ),
             MDDialogHeadlineText(text="[b]Guía de [i]Gráficos[/i][/b]", markup=True),
             MDDialogSupportingText(
-                text="[b]Gráfico por materias:[/b] Los colores de los marcadores representan las distintas especialidades de cada materia. La línea segmentada representa el índice.\n\n[b]Gráfico por semestre:[/b] Representa el índice individual de cada semestre.\n\n[b]Gráfico de progresión:[/b] Representa el índice acumulado hasta cada semestre.",
+                text="[b]Gráfico por materias:[/b] Los colores de las barras representan las distintas especialidades de cada materia.\n\n[b]Gráfico por semestre:[/b] Representa el índice individual de cada semestre.\n\n[b]Gráfico de progresión:[/b] Representa el índice acumulado hasta cada semestre.",
                 markup=True,
                 halign="left",
             ),
@@ -4712,6 +4781,7 @@ class Widget_Principal(ScreenManager):
         menu_items_repositorio = []
         lista_materias = self.get_materias()
         self.menu_repositorio.caller = obj
+        self.menu_repositorio.hor_growth = None
         if inscritas:
             for materia in lista_materias:
                 if materia.inscrita:
@@ -4719,6 +4789,7 @@ class Widget_Principal(ScreenManager):
                             "text": materia.nombre,
                             "on_release": lambda x=materia.codigo: self.seleccionar_materia_repo(x),
                         })
+            self.menu_repositorio.hor_growth = "right"
             if not menu_items_repositorio:
                 self.mostrar_snackbar("No hay materias inscritas.")
                 return
@@ -4730,6 +4801,7 @@ class Widget_Principal(ScreenManager):
                             "text": materia.nombre,
                             "on_release": lambda x=materia.codigo: self.seleccionar_materia_repo(x),
                         })
+                self.menu_repositorio.hor_growth = "left"
             else:
                 for materia in lista_materias:
                     menu_items_repositorio.append({
@@ -4753,6 +4825,7 @@ class Widget_Principal(ScreenManager):
         pantalla_repositorio.nro_guias_teoricas = 0
         pantalla_repositorio.nro_guias_ejercicios = 0
         pantalla_repositorio.nro_otros = 0
+
         def documentos_recibidos(docs):
             if not docs:
                 return
@@ -4770,6 +4843,8 @@ class Widget_Principal(ScreenManager):
     def consultar_documentos(self, codigo, callback):
         if codigo in self.repositorio_cache.keys():
             return callback(self.repositorio_cache[codigo])
+        else:
+            self.mostrar_snackbar("Espera un momento", "Consultando documentos...", 2)
 
         import urllib.parse
         
@@ -5030,6 +5105,7 @@ class Widget_Principal(ScreenManager):
             self.pantalla_repositorio.email_verification = result["emailVerification"]
             self.pantalla_repositorio.nombre_usuario = result["name"]
         def fallo(req, result): 
+            Logger.error(result)
             self.mostrar_snackbar('Error al obtener datos de la cuenta')
         def error_red(req, result):
             self.mostrar_snackbar('Error de conexión.')
@@ -5046,9 +5122,13 @@ class Widget_Principal(ScreenManager):
             dlg.dismiss()
 
         def fallo(req, result):
+            STORE.delete('auth')
+            dlg.dismiss()
+            Logger.error(result)
             self.mostrar_snackbar('Fallo al cerrar sesión')
 
         def error_red(req, result):
+            Logger.error(result)
             self.mostrar_snackbar('Error de conexión.')
 
         UrlRequest(url, req_headers=self.get_headers(requiere_auth=True), method='DELETE', on_success=exito, on_failure=fallo, on_error=error_red)
@@ -5118,16 +5198,16 @@ class Widget_Principal(ScreenManager):
     def _actualizar_ui_listado(self, datos_rv):
         self.pantalla_listado.ids.rv_listado.data = datos_rv
 
-    def descargar_documento(self, url, nombre_archivo, unidad, peso):
+    def descargar_documento(self, url, nombre_archivo, unidad, peso, id):
         app = MDApp.get_running_app()
         nombre_destino = None
         try:
             temp = None
             if platform == "android":
-                temp = self.ss.get_cache_dir()
+                temp = app.ss.get_cache_dir()
             else:
                 temp = RUTA_ARCHIVOS
-            nombre_destino = os.path.join(temp, "Repositorio", self.pantalla_listado.materia, unidad, nombre_archivo)
+            nombre_destino = os.path.join(temp, "Repositorio", self.pantalla_listado.materia, unidad, nombre_archivo + "_" + id[8:])
             destino = os.path.dirname(nombre_destino)
             os.makedirs(destino, exist_ok=True)
         except Exception as e:
@@ -5169,13 +5249,29 @@ class Widget_Principal(ScreenManager):
             archivo = "prueba"
             if platform == "android":
                 archivo = app.ss.copy_to_shared(nombre_destino, filepath=join("Repositorio", self.pantalla_listado.materia, unidad, nombre_archivo))
-                MDSnackbar(MDSnackbarSupportingText(text='Archivo descargado.', halign="left", theme_text_color="Custom", text_color=self.LETRA_FUERTE),
-                            MDSnackbarButtonContainer(
-                                MDSnackbarActionButton(
-                                    MDSnackbarActionButtonText(text = "Abrir"), on_release = lambda a=archivo: self.open_file(archivo),
-                                    ),
-                                ),
-                        duration=5, pos_hint={"center_x": 0.5}, y=dp(25), size_hint_x=0.8, theme_bg_color = "Custom", md_bg_color = self.color_fondo_mas_claro).open()
+                MDSnackbar(
+                    MDSnackbarText(
+                        text="Archivo descargado. Ubicación:",
+                        theme_text_color = "Custom",
+                        text_color = self.NARANJA_CLARO),
+                    MDSnackbarSupportingText(
+                        text='Almacenamiento Interno > Documents > Unexum',
+                        halign="left",
+                        theme_text_color="Custom",
+                        text_color=self.LETRA_FUERTE),
+                    MDSnackbarButtonContainer(
+                        MDSnackbarActionButton(
+                            MDSnackbarActionButtonText(text = "Abrir"),
+                            on_release = lambda a=archivo: self.open_file(archivo),
+                        ),
+                        pos_hint = {"center_y": 0.5}),
+                orientation = "horizontal",    
+                duration=8,
+                pos_hint={"center_x": 0.5},
+                y=dp(25),
+                size_hint_x=0.9,
+                theme_bg_color="Custom",
+                background_color=self.color_fondo_mas_claro).open()
             else:
                 self.mostrar_snackbar('Archivo descargado correctamente.')
             
@@ -5632,6 +5728,11 @@ class MainApp(MDApp):
         if platform == "android" and get_android_api() >= 35:
             self.size_status = get_height_of_bar("status")
             self.size_nav = get_height_of_bar("navigation")
+
+        self.memoria_local = JsonStore('config_local.json')
+        if not self.memoria_local.exists('anuncios'):
+            self.memoria_local.put('anuncios', ultima_version=0)
+            
 
     def build(self):
         self.widget_principal = Widget_Principal()

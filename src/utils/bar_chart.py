@@ -140,11 +140,11 @@ class BarChart(Widget):
         
         # Increase bottom padding to provide more space for labels
         # Adjust based on rotation and screen resolution
-        bottom_padding = dp(160) if self.x_axis_label_rotation != "no-rotation" else dp(70)
+        bottom_padding = dp(200) if self.x_axis_label_rotation != "no-rotation" else dp(70)
         
-        top_padding = dp(30)
+        top_padding = dp(60)
         left_padding = dp(25)
-        right_padding = dp(2)
+        right_padding = dp(10)
 
         chart_width = self.width - left_padding - right_padding
         chart_height = self.height - title_height - bottom_padding - top_padding

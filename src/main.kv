@@ -256,7 +256,7 @@
             font_size: "15sp"
             size: dp(25), dp(25)
             pos_hint: {"center_x": 0.5, "center_y": 0.66}
-            on_release: app.root.descargar_documento(root.url_archivo, root.nombre_documento, root.unidad, root.peso_documento)
+            on_release: app.root.descargar_documento(root.url_archivo, root.nombre_documento, root.unidad, root.peso_documento, root.id)
             theme_bg_color: "Custom"
             md_bg_color: app.root.CYAN
 
@@ -2129,6 +2129,7 @@
                     text: f"    [b]Unidad: {root.unidad}[/b]"
                     theme_font_size: "Custom"
                     font_size: "18sp"
+                    pos_hint: {"center_y": 0.5}
 
 
             MDScrollView:
@@ -2338,7 +2339,7 @@
                         pos_hint: {"center_x": 0.5, "center_y": 0.5}
 
             MDCard:
-                size_hint: 1, 0.1
+                size_hint: 1, 0.14
                 theme_bg_color: "Custom"
                 md_bg_color: app.root.color_fondo_claro
                 radius: 0
@@ -2378,7 +2379,7 @@
                         max_text_length: 30
 
             MDCard:
-                size_hint: 1, 0.1
+                size_hint: 1, 0.14
                 theme_bg_color: "Custom"
                 md_bg_color: app.root.color_fondo_claro
                 radius: 0
@@ -2445,6 +2446,7 @@
                             text: f"    [b]Unidad: {root.unidad}[/b]"
                             theme_font_size: "Custom"
                             font_size: "17sp"
+                            pos_hint: {"center_y": 0.5}
                     MDScrollView:
                         scroll_type: ["content"]
                         do_scroll_y: False
@@ -2611,9 +2613,6 @@
                         theme_icon_color: "Custom"
                         icon_color: "black"
 
-
-            MDBoxLayout:
-                size_hint: 1, 0.08
 
 <Widget_Principal>
     Screen:
