@@ -743,12 +743,11 @@ class Widget_Principal(ScreenManager):
             self.horario_active = False
             Clock.schedule_once(
                 lambda dt, cambio_tema=True: self.mostrar_materias_inicio(
-                    cambio_tema=cambio_tema
+                    inscritas=True,
                 ),
-                1.6,
             )
             Clock.schedule_once(
-                lambda dt, cambio_tema=True: self.consultar_anuncio(),
+                lambda dt: self.consultar_anuncio(),
                 2,
             )
             self.remove_widget(pantalla_login)
@@ -809,7 +808,10 @@ class Widget_Principal(ScreenManager):
             self.inicio_active = False
             self.horario_active = True
             self.repositorio_active = False
-            self.transition = SlideTransition(direction="left")
+            if self.current == "Repositorio":
+                self.transition = SlideTransition(direction="right")
+            else:
+                self.transition = SlideTransition(direction="left")
             self.current = "Horario"
             if self.firts_update_horario:
                 self.firts_update_horario = False
@@ -3194,21 +3196,21 @@ class Widget_Principal(ScreenManager):
                     pos_hint={"center_x": 0.9, "center_y": 0.5},
                 )
                 objeto_lista = BoxConRippleElectivas(
-                    MDLabel(markup = True,
-                        text=f"[b][size=14sp]{electiva.nombre}[/size][/b]\n[size=12sp][color={('#B2B2B2' if self.tema=='Oscuro' else '#333333')}]Prereq. 1: {pre1.nombre}{pre2}[/color][/size]",
-                        theme_line_height = "Custom",
-                        line_height = 0.9,
-                        pos_hint = {"x": 0.05},
-                        size_hint_x = 0.8,
-                        outline_color = [0,0,0,1],
-                        outline_width = self.borde_letra_fino),
-                    check_box,
                     size_hint_x = 1, 
                     size_hint_y = None, 
                     theme_bg_color="Custom",
                     md_bg_color=self.color_fondo_claro,
                     height=dp(105),
                 )
+                objeto_lista.add_widget(MDLabel(markup = True,
+                        text=f"[b][size=14sp]{electiva.nombre}[/size][/b]\n[size=12sp][color={('#B2B2B2' if self.tema=='Oscuro' else '#333333')}]Prereq. 1: {pre1.nombre}{pre2}[/color][/size]",
+                        theme_line_height = "Custom",
+                        line_height = 0.9,
+                        pos_hint = {"x": 0.05},
+                        size_hint_x = 0.8,
+                        outline_color = [0,0,0,1],
+                        outline_width = self.borde_letra_fino))
+                objeto_lista.add_widget(check_box)
 
                 # Electivas que ya están en la lista de materias
                 if electiva.codigo in lista_materias_codigos:
@@ -3319,7 +3321,7 @@ class Widget_Principal(ScreenManager):
         if value:
             #Si se alcanzó el límite de electivas
             if self.contador_electivas + electiva.costo > max_electivas:
-                self.mostrar_snackbar(f"Solo puedes añadir hasta {max_electivas} electivas.", "Deselecciona una y vuelve a intentar. (Entrenamiento industrial opcional cuenta como 2 electivas)")
+                self.mostrar_snackbar("Deselecciona una y vuelve a intentar. (Entrenamiento industrial opcional cuenta como 2 electivas)", f"Solo puedes añadir hasta {max_electivas} electivas.")
                 self.inhabilitar_checkbox = True
                 checkbox.active = False
                 self.inhabilitar_checkbox = False
@@ -5733,7 +5735,6 @@ class MainApp(MDApp):
         if not self.memoria_local.exists('anuncios'):
             self.memoria_local.put('anuncios', ultima_version=0)
             
-
     def build(self):
         self.widget_principal = Widget_Principal()
         self.theme_cls.theme_style_switch_animation = True

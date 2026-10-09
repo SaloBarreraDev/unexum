@@ -501,8 +501,7 @@ class BoxConRippleElectivas(RectangularRippleBehavior, MDRelativeLayout):
         self.ripple_duration_in_fast = 0.1
         self.ripple_duration_out = 0.1
         self.ripple_color = [0.5, 0.5, 0.5, 0.1]
-        super().__init__(*args, **kwargs)
-
+        super().__init__(**kwargs)
 
 #RV custom de listado de archivos
 class RVListado(RecycleView):
